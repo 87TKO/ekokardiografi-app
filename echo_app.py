@@ -305,7 +305,7 @@ components.html(style_block + script + modified_svg + """
         Återställ
     </button>
 </div>
-""", height=1300, scrolling=True)
+""", height=1200, scrolling=True)
 
 # --- 💓 Diastolisk Funktion ---
 st.header("Diastolisk Funktion")
