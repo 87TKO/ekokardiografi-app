@@ -280,8 +280,17 @@ svg {
     height: auto;
     max-width: 100%;
 }
+#segment_display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+}
+#segment_display > div {
+    flex: 1 1 45%;
+}
 @media (max-width: 768px) {
-    #summary_box, #alert_box {
+    #summary_box, #alert_box, #segment_display > div {
         flex: 1 1 100%;
     }
 }
