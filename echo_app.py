@@ -290,7 +290,9 @@ svg {
     flex: 1 1 45%;
 }
 @media (max-width: 768px) {
-    #summary_box, #alert_box, #segment_display > div {
+    #segment_display > div,
+    #summary_box,
+    #alert_box {
         flex: 1 1 100%;
     }
 }
