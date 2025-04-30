@@ -344,7 +344,18 @@ svg {
 </style>
 """
 
-components.html(style_block + script + modified_svg + """
+components.html(
+    style_block + script + modified_svg + """
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    const height = window.innerWidth <= 768 ? 900 : 1800;
+    const streamlitIframe = window.frameElement;
+    if (streamlitIframe) {
+        streamlitIframe.style.height = height + 'px';
+    }
+});
+</script>
+
 <div id="segment_display" style="margin-top:20px; font-size:18px;"></div>
 
 <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px;">
@@ -361,7 +372,11 @@ components.html(style_block + script + modified_svg + """
         Återställ
     </button>
 </div>
-""", height=900, scrolling=False)
+""",
+    height=0,
+    scrolling=False
+)
+
 
 # --- 💓 Diastolisk Funktion ---
 st.header("Diastolisk Funktion")
