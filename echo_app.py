@@ -348,7 +348,7 @@ components.html(
     style_block + script + modified_svg + """
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    const height = window.innerWidth <= 768 ? 800 : 1800;
+    const height = window.innerWidth <= 768 ? 1000 : 1800;
     const streamlitIframe = window.frameElement;
     if (streamlitIframe) {
         streamlitIframe.style.height = height + 'px';
