@@ -391,50 +391,106 @@ e_e_prime = round(e_wave / e_prime_septal, 1) if e_prime_septal > 0 else 0
 # --- 🩺 Klaffunktion ---
 st.header("Klaffunktion")
 
+# --- AORTAKLAFF ---
 st.subheader("Aortaklaff")
 aorta_morphology = st.selectbox("Aortaklaff morfologi", ["Trikuspid", "Bikuspid"])
-aortic_vmax = st.number_input("Aortastenos maxhastighet (m/s)", min_value=0.0, step=0.1, format="%.1f")
-mean_pg = st.number_input("Medelgradient aorta (mmHg)", min_value=0, step=1, format="%d")
-ava = st.number_input("Aortaklaffarea (cm²)", min_value=0, step=1, format="%d")
-def is_aorta_dilated(aorta, age, sex, bsa):
-    import math
-    if sex == "Man":
-        log10_predicted = 1.033 + 0.188 * math.log10(age) + 0.070 * bsa
-        log10_see = 0.0431
-    else:
-        log10_predicted = 1.001 + 0.177 * math.log10(age) + 0.086 * bsa
-        log10_see = 0.0453
-    predicted = 10 ** log10_predicted
-    upper_limit = predicted * (10 ** (1.96 * log10_see))
-    return aorta > upper_limit
+use_manual_aorta = st.radio("Bedömning av aortaklaff", ["Manuell bedömning", "Avancerade parametrar"], horizontal=True)
 
-vena_contracta_ai = st.number_input("Vena Contracta AI (cm)", min_value=0, step=1, format="%d")
-pht_ai = st.number_input("Pressure Half-Time AI (ms)", min_value=0, step=1, format="%d")
-diastolic_flow_reversal = st.selectbox("Diastoliskt backflöde i aorta descendens", ["Nej", "Ja"])
+aorta_pathology = []
+aorta_stenosis_severity = None
+aorta_insuff_severity = None
 
+if use_manual_aorta == "Manuell bedömning":
+    aorta_pathology = st.multiselect("Aortaklaff patologi", ["Stenos", "Insufficiens"])
+    if "Stenos" in aorta_pathology:
+        aorta_stenosis_severity = st.selectbox("Grad av aortastenos", ["Lindrig", "Måttlig", "Uttalad"])
+    if "Insufficiens" in aorta_pathology:
+        aorta_insuff_severity = st.selectbox("Grad av aortainsufficiens", ["Lindrig", "Måttlig", "Uttalad"])
+else:
+    with st.expander("Avancerade parametrar – aortaklaff"):
+        aortic_vmax = st.number_input("Maxhastighet (m/s)", min_value=0.0, step=0.1, format="%.1f")
+        mean_pg = st.number_input("Medelgradient (mmHg)", min_value=0, step=1, format="%d")
+        ava = st.number_input("Aortaklaffarea (cm²)", min_value=0.0, step=0.1, format="%.1f")
+        vena_contracta_ai = st.number_input("Vena Contracta AI (cm)", min_value=0.0, step=0.1, format="%.1f")
+        pht_ai = st.number_input("Pressure Half-Time AI (ms)", min_value=0, step=1, format="%d")
+        diastolic_flow_reversal = st.selectbox("Diastoliskt backflöde i aorta descendens", ["Nej", "Ja"])
+
+    if aortic_vmax > 2.6 or ava < 1.5:
+        aorta_pathology.append("Stenos")
+        if aortic_vmax > 4.0 or mean_pg > 40 or ava < 1.0:
+            aorta_stenosis_severity = "Uttalad"
+        elif 3.0 <= aortic_vmax <= 4.0 or 20 <= mean_pg <= 40 or 1.0 <= ava < 1.5:
+            aorta_stenosis_severity = "Måttlig"
+        else:
+            aorta_stenosis_severity = "Lindrig"
+
+    if vena_contracta_ai > 0.3 or pht_ai < 250 or diastolic_flow_reversal == "Ja":
+        aorta_pathology.append("Insufficiens")
+        if vena_contracta_ai >= 0.6 or pht_ai < 200:
+            aorta_insuff_severity = "Uttalad"
+        elif 0.4 <= vena_contracta_ai < 0.6 or 200 <= pht_ai < 250:
+            aorta_insuff_severity = "Måttlig"
+        else:
+            aorta_insuff_severity = "Lindrig"
+
+# --- MITRALISKLAFF ---
 st.subheader("Mitralisklaff")
-mva = st.number_input("Mitralisarea (cm²)", min_value=0, step=1, format="%d")
-vena_contracta_mr = st.number_input("Vena Contracta MR (cm)", min_value=0, step=1, format="%d")
+use_manual_mitral = st.radio("Bedömning av mitralisklaff", ["Manuell bedömning", "Avancerade parametrar"], horizontal=True)
 
+mitral_pathology = []
+mitral_stenosis_severity = None
+mitral_insuff_severity = None
+
+if use_manual_mitral == "Manuell bedömning":
+    mitral_pathology = st.multiselect("Mitralisklaff patologi", ["Stenos", "Insufficiens"])
+    if "Stenos" in mitral_pathology:
+        mitral_stenosis_severity = st.selectbox("Grad av mitralisstenos", ["Lindrig", "Måttlig", "Uttalad"])
+    if "Insufficiens" in mitral_pathology:
+        mitral_insuff_severity = st.selectbox("Grad av mitralisinsufficiens", ["Lindrig", "Måttlig", "Uttalad"])
+else:
+    with st.expander("Avancerade parametrar – mitralisklaff"):
+        mva = st.number_input("Mitralisarea (cm²)", min_value=0.0, step=0.1, format="%.1f")
+        vena_contracta_mr = st.number_input("Vena Contracta MR (cm)", min_value=0.0, step=0.1, format="%.1f")
+
+    if mva < 1.5:
+        mitral_pathology.append("Stenos")
+        mitral_stenosis_severity = "Uttalad" if mva < 1.0 else "Måttlig"
+
+    if vena_contracta_mr > 0.3:
+        mitral_pathology.append("Insufficiens")
+        if vena_contracta_mr >= 0.7:
+            mitral_insuff_severity = "Uttalad"
+        elif 0.4 <= vena_contracta_mr < 0.7:
+            mitral_insuff_severity = "Måttlig"
+        else:
+            mitral_insuff_severity = "Lindrig"
+
+# --- TRIKUSPIDALISKLAFF ---
 st.subheader("Trikuspidalisklaff")
-vena_contracta_tr = st.number_input("Vena Contracta TR (cm)", min_value=0, step=1, format="%d")
-tr_vmax = st.number_input("TR maxhastighet (m/s)", min_value=0, step=1, format="%d")
+use_manual_tricuspid = st.radio("Bedömning av trikuspidalisklaff", ["Manuell bedömning", "Avancerade parametrar"], horizontal=True)
+
+ti_grade = "Ingen"
+vena_contracta_tr = 0.0
+tr_vmax = 0.0
+
+if use_manual_tricuspid == "Manuell bedömning":
+    ti_grade = st.selectbox("Trikuspidalinsufficiens", ["Ingen", "Lindrig", "Måttlig", "Uttalad", "Ej mätbar"])
+else:
+    with st.expander("Avancerade parametrar – trikuspidalisklaff"):
+        vena_contracta_tr = st.number_input("Vena Contracta TR (cm)", min_value=0.0, step=0.1, format="%.1f")
+        tr_vmax = st.number_input("TR maxhastighet (m/s)", min_value=0.0, step=0.1, format="%.1f")
+
+    if vena_contracta_tr >= 0.7:
+        ti_grade = "Uttalad"
+    elif 0.4 <= vena_contracta_tr < 0.7:
+        ti_grade = "Måttlig"
+    elif 0.1 <= vena_contracta_tr < 0.4:
+        ti_grade = "Lindrig"
+    else:
+        ti_grade = "Ingen"
+
 cvp = st.selectbox("Centralvenöst tryck (CVP mmHg)", [5, 10, 15])
-
-pa_pressure = round(tr_vmax + cvp, 1) if tr_vmax > 0 else 0
-
-# --- 💬 Diastolic Pressure ---
-fyllnadstryck_criteria = 0
-if e_e_prime > 14:
-    fyllnadstryck_criteria += 1
-if lavi > 34:
-    fyllnadstryck_criteria += 1
-if pa_pressure > 35:
-    fyllnadstryck_criteria += 1
-if e_a_ratio > 2 or (0.8 < e_a_ratio < 2 and e_e_prime > 14):
-    fyllnadstryck_criteria += 1
-
-fyllnadstryck_status = "Tecken till förhöjt fyllnadstryck" if fyllnadstryck_criteria >= 2 else ""
+pa_pressure = round(tr_vmax + cvp, 1) if tr_vmax > 0 and ti_grade != "Ej mätbar" else None
 
 # --- 📝 Sammanfattning ---
 st.header("Sammanfattning")
@@ -492,28 +548,43 @@ if tapse > 16:
     if tapse < 17:
         findings += "Tecken till nedsatt högerkammarfunktion. "
 
-if fyllnadstryck_status:
-    findings += fyllnadstryck_status + ". "
+if fyllnadstryck_criteria >= 2:
+    findings += "Tecken till förhöjt fyllnadstryck. "
 
-findings += f"{aorta_morphology} aortaklaff "
-if aortic_vmax > 2.6 or ava < 1.5:
-    findings += "med aortastenos. "
-elif vena_contracta_ai > 0.3 or pht_ai < 250 or diastolic_flow_reversal == "Ja":
-    findings += "med aortainsufficiens. "
+# Aorta summary
+if aorta_pathology:
+    findings += f"{aorta_morphology} aortaklaff med "
+    parts = []
+    if "Stenos" in aorta_pathology:
+        parts.append(f"aortastenos ({aorta_stenosis_severity.lower()})")
+    if "Insufficiens" in aorta_pathology:
+        parts.append(f"aortainsufficiens ({aorta_insuff_severity.lower()})")
+    findings += " och ".join(parts) + ". "
 else:
-    findings += "utan stenos eller insufficiens. "
+    findings += f"{aorta_morphology} aortaklaff utan patologi. "
 
-if mva < 1.5:
-    findings += "Mitralisstenos. "
-if vena_contracta_mr > 0.3:
-    findings += "Mitralisinsufficiens. "
-if vena_contracta_tr > 0.5:
-    findings += "Trikuspidalinsufficiens. "
-
-if pa_pressure > 35:
-    findings += f"PA-tryck förhöjt ({pa_pressure:d} mmHg inkl CVT {cvp} mmHg). "
+# Mitralis summary
+if mitral_pathology:
+    findings += "Mitralisklaff med "
+    parts = []
+    if "Stenos" in mitral_pathology:
+        parts.append(f"mitralisstenos ({mitral_stenosis_severity.lower()})")
+    if "Insufficiens" in mitral_pathology:
+        parts.append(f"mitralisinsufficiens ({mitral_insuff_severity.lower()})")
+    findings += " och ".join(parts) + ". "
 else:
-    findings += f"PA-tryck normalt ({pa_pressure:d} mmHg inkl CVT {cvp} mmHg). "
+    findings += "Ingen mitralispatologi. "
+
+# Trikuspid summary
+if ti_grade == "Ej mätbar":
+    findings += f"Trikuspidalinsufficiens ej mätbar. Endast CVP anges ({cvp} mmHg). "
+elif ti_grade != "Ingen":
+    findings += f"Trikuspidalinsufficiens, {ti_grade.lower()} grad. "
+
+if ti_grade != "Ej mätbar" and pa_pressure is not None:
+    findings += f"PA-tryck {('förhöjt' if pa_pressure > 35 else 'normalt')} ({pa_pressure:.0f} mmHg inkl CVP {cvp} mmHg). "
+elif ti_grade == "Ej mätbar":
+    findings += f"PA-tryck kan ej beräknas. CVP {cvp} mmHg. "
 
 findings += "Ingen perikardvätska."
 
