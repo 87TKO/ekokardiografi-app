@@ -492,7 +492,20 @@ else:
 cvp = st.selectbox("Centralvenöst tryck (CVP mmHg)", [5, 10, 15])
 pa_pressure = round(tr_vmax + cvp, 1) if tr_vmax > 0 and ti_grade != "Ej mätbar" else None
 
+
+# --- 💬 Diastolic Pressure ---
+fyllnadstryck_criteria = 0
+if e_e_prime > 14:
+    fyllnadstryck_criteria += 1
+if lavi > 34:
+    fyllnadstryck_criteria += 1
+if pa_pressure and pa_pressure > 35:
+    fyllnadstryck_criteria += 1
+if e_a_ratio > 2 or (0.8 < e_a_ratio < 2 and e_e_prime > 14):
+    fyllnadstryck_criteria += 1
+
 # --- 📝 Sammanfattning ---
+
 st.header("Sammanfattning")
 
 # 🧍 Patient information
@@ -590,3 +603,4 @@ findings += "Ingen perikardvätska."
 
 # Output
 st.markdown(f"{patient_info}\n\n{findings}")
+
