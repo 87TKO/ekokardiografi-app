@@ -229,7 +229,7 @@ function toggleSegment(id) {
             if (!selectedSegments.includes(s)) selectedSegments.push(s);
             const el = document.getElementById(s);
             if (el) {
-                el.style.stroke = "yellow";
+                el.style.stroke = "blue";
                 el.style.strokeWidth = "3";
             }
         });
@@ -331,8 +331,7 @@ svg {
     }
 
     #segment_display > div,
-    #summary_box,
-    #alert_box {
+    #combined_display {
         flex: 1 1 100%;
         width: 100%;
     }
@@ -348,7 +347,7 @@ components.html(
     style_block + script + modified_svg + """
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    const height = window.innerWidth <= 768 ? 1000 : 1800;
+    const height = window.innerWidth <= 768 ? 1000 : 1900;
     const streamlitIframe = window.frameElement;
     if (streamlitIframe) {
         streamlitIframe.style.height = height + 'px';
@@ -358,13 +357,9 @@ window.addEventListener('DOMContentLoaded', function() {
 
 <div id="segment_display" style="margin-top:20px; font-size:18px;"></div>
 
-<div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px;">
-    <div id="summary_box" style="flex: 0.48; padding: 8px; border: 2px solid #003366; border-radius: 8px; background-color: #f0f4f8;">
-        <div id="summary_display" style="font-size:20px;"></div>
-    </div>
-    <div id="alert_box" style="flex: 0.48; padding: 8px; border: 2px solid #003366; border-radius:8px; background-color: #f0f4f8;">
-        <div id="alert_display"></div>
-    </div>
+<div id="combined_display" style="margin-top: 20px; padding: 12px; border: 2px solid #003366; border-radius: 8px; background-color: #f0f4f8;">
+    <div id="summary_display" style="font-size:20px; margin-bottom: 12px;"></div>
+    <div id="alert_display" style="font-size:18px;"></div>
 </div>
 
 <div style="margin-top:20px;">
