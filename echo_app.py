@@ -1,3 +1,4 @@
+# --- Ekokardiografi App ---
 import streamlit as st
 import streamlit.components.v1 as components
 from bs4 import BeautifulSoup
@@ -7,7 +8,7 @@ import math
 st.set_page_config(page_title="Ekokardiografi App", layout="wide")
 st.title("Ekokardiografi")
 
-# --- 🦍 Patientuppgifter ---
+# --- 🧝 Patientuppgifter ---
 st.header("Patientuppgifter")
 age = st.number_input("Ålder", min_value=0, max_value=120, step=1, format="%d")
 weight = st.number_input("Vikt (kg)", min_value=0, step=1, format="%d")
@@ -22,7 +23,7 @@ ekg_rytm = st.selectbox(
 )
 ekg_freq = st.number_input("EKG-frekvens (bpm)", min_value=20, max_value=200, step=1, format="%d")
 
-# --- 🕥 Dimensioner ---
+# --- 🕝 Dimensioner ---
 st.header("Dimensioner")
 lvdd = st.number_input("LVIDd (mm)", min_value=0, step=1, format="%d")
 ivsd = st.number_input("IVSd (mm)", min_value=0, step=1, format="%d")
@@ -30,7 +31,7 @@ lvpwd = st.number_input("LVPWd (mm)", min_value=0, step=1, format="%d")
 aorta = st.number_input("Aorta ascendens (mm)", min_value=0, step=1, format="%d")
 lavi = st.number_input("LAVI (ml/m²)", min_value=0, step=1, format="%d")
 
-# --- 🕥 Dimension Bedömning ---
+# --- 🕝 Dimension Bedömning ---
 lvdd_status = "Normal"
 ivsd_status = "Normal"
 lvpwd_status = "Normal"
@@ -372,16 +373,137 @@ window.addEventListener('DOMContentLoaded', function() {
     scrolling=False
 )
 
+# --- 💓 Diastolisk Funktion (bedömning av fyllnadstryck) ---
+st.header("Diastolisk Funktion (bedömning av fyllnadstryck)")
+with st.expander("**OBSERVANDUM!**", expanded=False):
+    st.markdown("""
 
-# --- 💓 Diastolisk Funktion ---
-st.header("Diastolisk Funktion")
-e_wave = st.number_input("E-våg (cm/s)", min_value=0.0, step=0.1, format="%.1f")
-a_wave = st.number_input("A-våg (cm/s)", min_value=0.0, step=0.1, format="%.1f")
+    * **LAVI** är ej bedömbart vid mer än lindrigt mitralisvitium och svårtolkat vid intermittent **förmaksflimmer**.
+
+    * **E/e′** bör ej bedömas vid mer än lindrigt mitralisvitium, mitralisklaffprotes, riklig förkalkning i annulus mitralis, pacemakerrytm, LBBB, prekapillär pulmonell hypertension, uttalad tricuspidalisinsufficiens och konstriktiv perikardit.
+
+    * **E/A-kvot** är svårbedömd vid sinusrytm hos patienter med intermittent **förmaksflimmer** samt vid sinustakykardi.
+
+    * Vid **förmaksflimmer** saknas goda riktlinjer för bedömning av fyllnadstrycket.
+    """)
+
+cvp = st.selectbox("Centralvenöst tryck (CVT mmHg)", [5, 10, 15], key="cvp_dia")
+tr_gradient_option = st.selectbox("TI-gradient tillgänglig?", ["Ej mätbar", "Ange värde"], key="tr_option_dia")
+if tr_gradient_option == "Ange värde":
+    tr_gradient = st.number_input("TI-gradient (mmHg)", min_value=0, step=1, format="%d", key="tr_value_dia")
+    pa_pressure = round(tr_gradient + cvp, 1)
+else:
+    pa_pressure = None
+
+e_wave = st.number_input("E-våg (m/s)", min_value=0.0, step=0.1, format="%.1f")
+a_wave = st.number_input("A-våg (m/s)", min_value=0.0, step=0.1, format="%.1f")
 e_prime_septal = st.number_input("e' septal (cm/s)", min_value=0, step=1, format="%d")
 e_prime_lateral = st.number_input("e' lateral (cm/s)", min_value=0, step=1, format="%d")
 
+# Optional parameters for extra analysis
+pv_flow = st.selectbox("Pulmonell venflöde (S/D)", ["Ej angivet", "S > D", "S < D"])
+pva_duration = st.number_input("PV-a duration (ms)", min_value=0, step=1)
+a_dur = st.number_input("A-vågs duration (ms)", min_value=0, step=1)
+
+# Derived values
 e_a_ratio = round(e_wave / a_wave, 1) if a_wave > 0 else 0
-e_e_prime = round(e_wave / e_prime_septal, 1) if e_prime_septal > 0 else 0
+e_wave_cm_s = e_wave * 100
+
+# Mean e′
+if e_prime_septal > 0 and e_prime_lateral > 0:
+    e_prime_avg = round((e_prime_septal + e_prime_lateral) / 2, 1)
+elif e_prime_septal > 0:
+    e_prime_avg = e_prime_septal
+elif e_prime_lateral > 0:
+    e_prime_avg = e_prime_lateral
+else:
+    e_prime_avg = 0
+
+e_e_prime = round(e_wave_cm_s / e_prime_avg, 1) if e_prime_avg > 0 else 0
+
+# Age-adjusted high E/A thresholds
+age_threshold_high = 2.0 if age < 55 else 1.8 if age <= 64 else 1.5
+
+diastolic_function_text = ""
+if e_a_ratio <= 0.8 and e_wave_cm_s <= 50:
+    diastolic_function_text = "Normalt fyllnadstryck."
+elif e_a_ratio > age_threshold_high:
+    diastolic_function_text = "Tecken till förhöjt fyllnadstryck."
+else:
+    assessable = []
+    positive = 0
+
+    if lavi > 37:
+        assessable.append("LAVI")
+        positive += 1
+    else:
+        assessable.append("LAVI")
+
+    if pa_pressure:
+        assessable.append("PA")
+        if pa_pressure > 35:
+            positive += 1
+
+    if e_e_prime > 0:
+        assessable.append("E/e′")
+        if e_e_prime > 14:
+            positive += 1
+
+    if len(assessable) >= 3:
+        if positive >= 2:
+            diastolic_function_text = "Tecken till förhöjt fyllnadstryck."
+        else:
+            diastolic_function_text = "Normalt fyllnadstryck."
+    elif len(assessable) == 2 and positive == 1:
+        diastolic_function_text = "Fyllnadstryck kan ej bedömas."
+    elif positive == len(assessable):
+        diastolic_function_text = "Tecken till förhöjt fyllnadstryck."
+    else:
+        diastolic_function_text = "Normalt fyllnadstryck."
+
+# Check if pulmonary vein or PV-a findings are positive
+extra_positive = False
+if (pv_flow == "S < D" and age > 50) or (pva_duration > 0 and a_dur > 0 and (pva_duration - a_dur) > 30):
+    extra_positive = True
+
+if diastolic_function_text == "Normalt fyllnadstryck." and extra_positive:
+    diastolic_function_text = "Tecken till förhöjt fyllnadstryck."
+
+if diastolic_function_text == "Normalt fyllnadstryck.":
+    st.markdown("**Normalt fyllnadstryck**")
+elif diastolic_function_text == "Tecken till förhöjt fyllnadstryck.":
+    st.markdown("**Tecken till förhöjt fyllnadstryck**")
+elif diastolic_function_text == "Fyllnadstryck kan ej bedömas.":
+    st.markdown("**Fyllnadstryck kan ej bedömas**")
+
+if diastolic_function_text != "":
+    if e_a_ratio > 0 and (e_a_ratio > age_threshold_high or (e_a_ratio <= 0.8 and e_wave_cm_s <= 50)):
+        e_a_text = f"**E/A: {e_a_ratio} (ålder {age})**"
+    else:
+        e_a_text = f"E/A: {e_a_ratio}"
+
+    e_e_prime_text = f"**E/e′: {e_e_prime}**" if e_e_prime > 14 else f"E/e′: {e_e_prime}" if e_e_prime > 0 else "E/e′: Ej angivet"
+    lavi_text = f"**LAVI: {lavi} ml/m²**" if lavi > 37 else f"LAVI: {lavi} ml/m²"
+    pa_text = f"**PA-tryck: {pa_pressure:.0f} mmHg**" if pa_pressure is not None and pa_pressure > 35 else f"PA-tryck: {pa_pressure:.0f} mmHg" if pa_pressure is not None else "PA-tryck: Ej angivet"
+
+    pv_text = ""
+    if pv_flow == "S < D" and age > 50:
+        pv_text = "**Pulmonell venflöde S < D hos patient >50 år**"
+
+    pva_text = ""
+    if pva_duration > 0 and a_dur > 0 and (pva_duration - a_dur) > 30:
+        pva_text = f"**PV-a duration längre än A-vågs duration med {pva_duration - a_dur} ms**"
+
+    st.markdown("**Parametrar:**")
+    st.markdown(f"- {e_a_text}")
+    st.markdown(f"- {e_e_prime_text}")
+    st.markdown(f"- {lavi_text}")
+    st.markdown(f"- {pa_text}")
+    if pv_text:
+        st.markdown(f"- {pv_text}")
+    if pva_text:
+        st.markdown(f"- {pva_text}")
+
 
 # --- 🩺 Klaffunktion ---
 st.header("Klaffunktion")
@@ -464,16 +586,14 @@ else:
 st.subheader("Trikuspidalisklaff")
 use_manual_tricuspid = st.radio("Bedömning av trikuspidalisklaff", ["Manuell bedömning", "Avancerade parametrar"], horizontal=True)
 
-ti_grade = "Ingen"
 vena_contracta_tr = 0.0
-tr_vmax = 0.0
+ti_grade = "Ingen"
 
 if use_manual_tricuspid == "Manuell bedömning":
-    ti_grade = st.selectbox("Trikuspidalinsufficiens", ["Ingen", "Lindrig", "Måttlig", "Uttalad", "Ej mätbar"])
+    ti_grade = st.selectbox("Grad av trikuspidalinsufficiens (manuell)", ["Ingen", "Lindrig", "Måttlig", "Uttalad"])
 else:
     with st.expander("Avancerade parametrar – trikuspidalisklaff"):
         vena_contracta_tr = st.number_input("Vena Contracta TR (cm)", min_value=0.0, step=0.1, format="%.1f")
-        tr_vmax = st.number_input("TR maxhastighet (m/s)", min_value=0.0, step=0.1, format="%.1f")
 
     if vena_contracta_tr >= 0.7:
         ti_grade = "Uttalad"
@@ -484,26 +604,11 @@ else:
     else:
         ti_grade = "Ingen"
 
-cvp = st.selectbox("Centralvenöst tryck (CVP mmHg)", [5, 10, 15])
-pa_pressure = round(tr_vmax + cvp, 1) if tr_vmax > 0 and ti_grade != "Ej mätbar" else None
 
 
-# --- 💬 Diastolic Pressure ---
-fyllnadstryck_criteria = 0
-if e_e_prime > 14:
-    fyllnadstryck_criteria += 1
-if lavi > 34:
-    fyllnadstryck_criteria += 1
-if pa_pressure and pa_pressure > 35:
-    fyllnadstryck_criteria += 1
-if e_a_ratio > 2 or (0.8 < e_a_ratio < 2 and e_e_prime > 14):
-    fyllnadstryck_criteria += 1
-
-# --- 📝 Sammanfattning ---
-
+# --- Sammanfattning ---
 st.header("Sammanfattning")
 
-# 🧍 Patient information
 patient_info = (
     f"Ålder: {age:.0f} år, "
     f"Vikt: {weight:.0f} kg, "
@@ -512,9 +617,9 @@ patient_info = (
     f"Rytm: {ekg_rytm.lower()} med frekvens {ekg_freq:.0f} /min."
 )
 
-# 📋 Clinical findings
 findings = ""
 
+# Kammarfunktion
 if lvdd_status == "Normal":
     findings += "Normalstor vänsterkammare i diastole. "
 else:
@@ -528,11 +633,13 @@ else:
     if lvpwd_status != "Normal":
         findings += f"Bakvägg {lvpwd_status.lower()} ({lvpwd} mm). "
 
+# Aorta
 if age > 0 and is_aorta_dilated(aorta, age, sex, bsa):
     findings += f"Dilaterad aorta ascendens ({aorta} mm). "
-elif age > 0:
+else:
     findings += f"Normalvid aorta ascendens ({aorta} mm). "
 
+# Vänster förmak
 if lavi <= 34:
     findings += f"Normalstor vänster förmak (LAVI {lavi} ml/m²). "
 elif 35 <= lavi <= 41:
@@ -542,6 +649,7 @@ elif 42 <= lavi <= 48:
 else:
     findings += f"Uttalad ökad vänster förmak storlek (LAVI {lavi} ml/m²). "
 
+# Vänsterkammarfunktion
 if ef > 50:
     findings += f"Normal systolisk funktion med EF {ef}%. "
 elif 41 <= ef <= 50:
@@ -549,53 +657,46 @@ elif 41 <= ef <= 50:
 elif 30 <= ef <= 40:
     findings += f"Måttligt nedsatt systolisk funktion med EF {ef}%. "
 else:
-    findings += f"Svårt nedsatt systolisk funktion med EF {ef}%. "
+    findings += f"Svår nedsatt systolisk funktion med EF {ef}%. "
 
+# Högerkammare
 if tapse > 16:
     findings += f"Normal högerkammarfunktion TAPSE {tapse} mm. "
     if tapse < 17:
         findings += "Tecken till nedsatt högerkammarfunktion. "
 
-if fyllnadstryck_criteria >= 2:
-    findings += "Tecken till förhöjt fyllnadstryck. "
+# Diastolisk fyllnadstryck
+if diastolic_function_text:
+    findings += diastolic_function_text + " "
 
-# Aorta summary
-if aorta_pathology:
-    findings += f"{aorta_morphology} aortaklaff med "
-    parts = []
-    if "Stenos" in aorta_pathology:
-        parts.append(f"aortastenos ({aorta_stenosis_severity.lower()})")
-    if "Insufficiens" in aorta_pathology:
-        parts.append(f"aortainsufficiens ({aorta_insuff_severity.lower()})")
-    findings += " och ".join(parts) + ". "
+# Klaffar
+findings += f"{aorta_morphology} aortaklaff"
+if not aorta_pathology:
+    findings += " utan stenos eller insufficiens. "
 else:
-    findings += f"{aorta_morphology} aortaklaff utan patologi. "
+    findings += ". "
+    if "Stenos" in aorta_pathology and aorta_stenosis_severity:
+        findings += f"Aortastenos: {aorta_stenosis_severity.lower()}. "
+    if "Insufficiens" in aorta_pathology and aorta_insuff_severity:
+        findings += f"Aortainsufficiens: {aorta_insuff_severity.lower()}. "
 
-# Mitralis summary
-if mitral_pathology:
-    findings += "Mitralisklaff med "
-    parts = []
-    if "Stenos" in mitral_pathology:
-        parts.append(f"mitralisstenos ({mitral_stenosis_severity.lower()})")
-    if "Insufficiens" in mitral_pathology:
-        parts.append(f"mitralisinsufficiens ({mitral_insuff_severity.lower()})")
-    findings += " och ".join(parts) + ". "
+if not mitral_pathology:
+    findings += "Ingen mitralisinsufficiens eller mitralisstenos. "
 else:
-    findings += "Ingen mitralispatologi. "
+    if "Stenos" in mitral_pathology and mitral_stenosis_severity:
+        findings += f"{mitral_stenosis_severity.lower()} mitralisstenos. "
+    if "Insufficiens" in mitral_pathology and mitral_insuff_severity:
+        findings += f"{mitral_insuff_severity.lower()} mitralisinsufficiens. "
 
-# Trikuspid summary
-if ti_grade == "Ej mätbar":
-    findings += f"Trikuspidalinsufficiens ej mätbar. Endast CVP anges ({cvp} mmHg). "
-elif ti_grade != "Ingen":
-    findings += f"Trikuspidalinsufficiens, {ti_grade.lower()} grad. "
-
-if ti_grade != "Ej mätbar" and pa_pressure is not None:
-    findings += f"PA-tryck {('förhöjt' if pa_pressure > 35 else 'normalt')} ({pa_pressure:.0f} mmHg inkl CVP {cvp} mmHg). "
-elif ti_grade == "Ej mätbar":
-    findings += f"PA-tryck kan ej beräknas. CVP {cvp} mmHg. "
+if ti_grade != "Ingen":
+    findings += f"{ti_grade.lower()} trikuspidalisinsufficiens. "
+    if tr_gradient_option == "Ej mätbar":
+        findings += f"TI-gradient ej mätbar. CVT ({cvp} mmHg). "
+    elif pa_pressure is not None:
+        findings += f"PA-tryck {('förhöjt' if pa_pressure > 35 else 'normalt')} ({pa_pressure:.0f} mmHg inkl CVT {cvp} mmHg). "
+else:
+    findings += "Ingen trikuspidalisinsufficiens. "
 
 findings += "Ingen perikardvätska."
 
-# Output
 st.markdown(f"{patient_info}\n\n{findings}")
-
