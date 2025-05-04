@@ -31,64 +31,84 @@ lvpwd = st.number_input("LVPWd (mm)", min_value=0, step=1, format="%d")
 aorta = st.number_input("Aorta ascendens (mm)", min_value=0, step=1, format="%d")
 lavi = st.number_input("LAVI (ml/m²)", min_value=0, step=1, format="%d")
 
-# --- 🕝 Dimension Bedömning ---
+# --- 🕝 Dimension Bedömning --- (Aligned with Equalis S022 v1.2)
 lvdd_status = "Normal"
 ivsd_status = "Normal"
 lvpwd_status = "Normal"
 
 if sex == "Man":
+    # LVIDd thresholds (Equalis: normal ≤ 58 mm)
     if lvdd > 65:
         lvdd_status = "Kraftig dilaterad"
-    elif lvdd >= 62:
+    elif lvdd > 61:
         lvdd_status = "Måttligt dilaterad"
-    elif lvdd >= 57:
+    elif lvdd > 58:
         lvdd_status = "Lätt dilaterad"
-    elif lvdd < 37:
+    elif lvdd < 42:
         lvdd_status = "Mindre än normalt"
+    else:
+        lvdd_status = "Normal"
 
-    if ivsd > 18:
+    # IVSd (Equalis/Norre: normal ≤ 12 mm)
+    if ivsd > 16:
         ivsd_status = "Uttalad hypertrofi"
-    elif ivsd >= 16:
+    elif ivsd >= 14:
         ivsd_status = "Måttlig hypertrofi"
     elif ivsd >= 13:
         ivsd_status = "Lindrig hypertrofi"
+    else:
+        ivsd_status = "Normal"
 
-    if lvpwd > 18:
+    # LVPWd (Equalis/Norre: normal ≤ 12 mm)
+    if lvpwd > 16:
         lvpwd_status = "Uttalad hypertrofi"
-    elif lvpwd >= 16:
+    elif lvpwd >= 14:
         lvpwd_status = "Måttlig hypertrofi"
     elif lvpwd >= 13:
         lvpwd_status = "Lindrig hypertrofi"
+    else:
+        lvpwd_status = "Normal"
 
 elif sex == "Kvinna":
+    # LVIDd thresholds (Equalis: normal ≤ 52 mm)
     if lvdd > 59:
         lvdd_status = "Kraftig dilaterad"
-    elif lvdd >= 56:
+    elif lvdd > 55:
         lvdd_status = "Måttligt dilaterad"
-    elif lvdd >= 52:
+    elif lvdd > 52:
         lvdd_status = "Lätt dilaterad"
-    elif lvdd < 35:
+    elif lvdd < 38:
         lvdd_status = "Mindre än normalt"
+    else:
+        lvdd_status = "Normal"
 
-    if ivsd > 17:
+    # IVSd (Equalis/Norre: normal ≤ 11 mm)
+    if ivsd > 15:
         ivsd_status = "Uttalad hypertrofi"
-    elif ivsd >= 15:
+    elif ivsd >= 13:
         ivsd_status = "Måttlig hypertrofi"
     elif ivsd >= 12:
         ivsd_status = "Lindrig hypertrofi"
+    else:
+        ivsd_status = "Normal"
 
-    if lvpwd > 17:
+    # LVPWd (Equalis/Norre: normal ≤ 11 mm)
+    if lvpwd > 15:
         lvpwd_status = "Uttalad hypertrofi"
-    elif lvpwd >= 15:
+    elif lvpwd >= 13:
         lvpwd_status = "Måttlig hypertrofi"
     elif lvpwd >= 12:
         lvpwd_status = "Lindrig hypertrofi"
+    else:
+        lvpwd_status = "Normal"
 
 # --- 💓 Systolisk Funktion ---
 st.header("Systolisk Funktion")
 ef = st.number_input("Ejektionsfraktion (EF %)", min_value=0, max_value=100, step=1, format="%d")
 stroke_volume = st.number_input("Stroke Volume (ml)", min_value=0, step=1, format="%d")
+svi = round(stroke_volume / bsa, 1) if stroke_volume > 0 and bsa > 0 else 0.0
 tapse = st.number_input("TAPSE (mm)", min_value=0, max_value=40, step=1, format="%d")
+gls = st.number_input("Global Longitudinal Strain (GLS %)", min_value=-30.0, max_value=0.0, step=0.1, format="%.1f")
 
 # --- Aorta dilatation enligt Campens et al ---
 def is_aorta_dilated(aorta, age, sex, bsa):
@@ -659,6 +679,41 @@ elif 30 <= ef <= 40:
 else:
     findings += f"Svår nedsatt systolisk funktion med EF {ef}%. "
 
+# Lägg till GLS om det är angivet (dvs < 0)
+if gls < 0:
+    findings += f"GLS {gls:.1f}%. "
+    
+if stroke_volume > 0 and bsa > 0:
+    if sex == "Man":
+        if stroke_volume < 60:
+            findings += f"Låg slagvolym ({stroke_volume} ml). "
+        elif stroke_volume > 95:
+            findings += f"Hög slagvolym ({stroke_volume} ml). "
+        else:
+            findings += f"Slagvolym inom normalintervall ({stroke_volume} ml). "
+
+        if svi < 34:
+            findings += f"SVI lågt ({svi} ml/m²). "
+        elif svi > 46:
+            findings += f"SVI högt ({svi} ml/m²). "
+        else:
+            findings += f"SVI inom normalintervall ({svi} ml/m²). "
+
+    elif sex == "Kvinna":
+        if stroke_volume < 50:
+            findings += f"Låg slagvolym ({stroke_volume} ml). "
+        elif stroke_volume > 75:
+            findings += f"Hög slagvolym ({stroke_volume} ml). "
+        else:
+            findings += f"Normala slagvolym ({stroke_volume} ml). "
+
+        if svi < 33:
+            findings += f"SVI lågt ({svi} ml/m²). "
+        elif svi > 45:
+            findings += f"SVI högt ({svi} ml/m²). "
+        else:
+            findings += f"SVI inom normalintervall ({svi} ml/m²). "
+
 # Högerkammare
 if tapse > 16:
     findings += f"Normal högerkammarfunktion TAPSE {tapse} mm. "
@@ -690,10 +745,15 @@ else:
 
 if ti_grade != "Ingen":
     findings += f"{ti_grade.lower()} trikuspidalisinsufficiens. "
-    if tr_gradient_option == "Ej mätbar":
-        findings += f"TI-gradient ej mätbar. CVT ({cvp} mmHg). "
-    elif pa_pressure is not None:
-        findings += f"PA-tryck {('förhöjt' if pa_pressure > 35 else 'normalt')} ({pa_pressure:.0f} mmHg inkl CVT {cvp} mmHg). "
+else:
+    findings += "Ingen trikuspidalisinsufficiens. "
+
+# PA-tryck bedömning (always include if possible)
+if tr_gradient_option == "Ej mätbar":
+    findings += f"TI-gradient ej mätbar. CVT {cvp} mmHg. "
+elif pa_pressure is not None:
+    pa_status = "förhöjt" if pa_pressure > 35 else "normalt"
+    findings += f"PA-tryck är {pa_status} ({pa_pressure:.0f} mmHg inkl. CVT {cvp} mmHg). "
 else:
     findings += "Ingen trikuspidalisinsufficiens. "
 
