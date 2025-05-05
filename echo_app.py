@@ -643,15 +643,25 @@ findings = ""
 if lvdd_status == "Normal":
     findings += "Normalstor vänsterkammare i diastole. "
 else:
-    findings += f"Vänsterkammare {lvdd_status.lower()} i diastole. "
+    # Remove double "dilaterad" if already included
+    if "dilaterad" in lvdd_status.lower():
+        findings += f"{lvdd_status.capitalize()} vänsterkammare i diastole. "
+    else:
+        findings += f"{lvdd_status.capitalize()} dilaterad vänsterkammare i diastole. "
+
+# Hypertrofi – remove redundant 'hypertrofi' if already in status
+def clean_hypertrofi_term(status: str) -> str:
+    return status.replace("hypertrofi", "").strip().capitalize()
 
 if ivsd_status == "Normal" and lvpwd_status == "Normal":
-    findings += "Ingen hypertrofi. "
+    findings += f"Ingen hypertrofi (septum {ivsd} mm, bakvägg {lvpwd} mm). "
 else:
     if ivsd_status != "Normal":
-        findings += f"Septum {ivsd_status.lower()} ({ivsd} mm). "
+        cleaned_ivsd = clean_hypertrofi_term(ivsd_status)
+        findings += f"{cleaned_ivsd} hypertrofi i septum ({ivsd} mm). "
     if lvpwd_status != "Normal":
-        findings += f"Bakvägg {lvpwd_status.lower()} ({lvpwd} mm). "
+        cleaned_lvpwd = clean_hypertrofi_term(lvpwd_status)
+        findings += f"{cleaned_lvpwd} hypertrofi i bakväggen ({lvpwd} mm). "
 
 # Aorta
 if age > 0 and is_aorta_dilated(aorta, age, sex, bsa):
