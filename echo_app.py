@@ -774,8 +774,10 @@ else:
 if tr_gradient_option == "Ej mätbar":
     findings += f"TI-gradient ej mätbar. CVT {cvp} mmHg. "
 elif pa_pressure is not None:
-    pa_status = "förhöjt" if pa_pressure > 35 else "normalt"
-    findings += f"PA-tryck är {pa_status} ({pa_pressure:.0f} mmHg inkl. CVT {cvp} mmHg). "
+    if pa_pressure > 35:
+        findings += f"Förhöjt PA-tryck ({pa_pressure:.0f} mmHg inkl. CVT {cvp} mmHg). "
+    else:
+        findings += f"Normalt PA-tryck ({pa_pressure:.0f} mmHg inkl. CVT {cvp} mmHg). "
 else:
     findings += "Ingen trikuspidalisinsufficiens. "
 
