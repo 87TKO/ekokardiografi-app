@@ -725,26 +725,38 @@ if diastolic_function_text:
     findings += diastolic_function_text + " "
 
 # Klaffar
-findings += f"{aorta_morphology} aortaklaff"
 if not aorta_pathology:
-    findings += " utan stenos eller insufficiens. "
-else:
-    findings += ". "
-    if "Stenos" in aorta_pathology and aorta_stenosis_severity:
-        findings += f"Aortastenos: {aorta_stenosis_severity.lower()}. "
-    if "Insufficiens" in aorta_pathology and aorta_insuff_severity:
-        findings += f"Aortainsufficiens: {aorta_insuff_severity.lower()}. "
+    findings += f"{aorta_morphology} aortaklaff utan stenos eller insufficiens. "
+elif "Stenos" in aorta_pathology and "Insufficiens" not in aorta_pathology:
+    if aorta_stenosis_severity:
+        findings += f"{aorta_morphology} aortaklaff med {aorta_stenosis_severity.lower()} aortastenos utan aortainsufficiens. "
+elif "Insufficiens" in aorta_pathology and "Stenos" not in aorta_pathology:
+    findings += f"{aorta_morphology} aortaklaff utan aortastenos. "
+    if aorta_insuff_severity:
+        findings += f"{aorta_insuff_severity.capitalize()} aortainsufficiens. "
+elif "Stenos" in aorta_pathology and "Insufficiens" in aorta_pathology:
+    findings += f"{aorta_morphology} aortaklaff med "
+    if aorta_stenosis_severity:
+        findings += f"{aorta_stenosis_severity.lower()} aortastenos"
+        if aorta_insuff_severity:
+            findings += f" och {aorta_insuff_severity.lower()} aortainsufficiens. "
+        else:
+            findings += ". "
+    elif aorta_insuff_severity:
+        findings += f"{aorta_insuff_severity.lower()} aortainsufficiens. "
 
+# Mitralisklaff
 if not mitral_pathology:
     findings += "Ingen mitralisinsufficiens eller mitralisstenos. "
 else:
     if "Stenos" in mitral_pathology and mitral_stenosis_severity:
-        findings += f"{mitral_stenosis_severity.lower()} mitralisstenos. "
+        findings += f"{mitral_stenosis_severity.capitalize()} mitralisstenos. "
     if "Insufficiens" in mitral_pathology and mitral_insuff_severity:
-        findings += f"{mitral_insuff_severity.lower()} mitralisinsufficiens. "
+        findings += f"{mitral_insuff_severity.capitalize()} mitralisinsufficiens. "
 
+# Trikuspidalisklaff
 if ti_grade != "Ingen":
-    findings += f"{ti_grade.lower()} trikuspidalisinsufficiens. "
+    findings += f"{ti_grade.capitalize()} trikuspidalisinsufficiens. "
 else:
     findings += "Ingen trikuspidalisinsufficiens. "
 
