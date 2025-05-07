@@ -503,6 +503,8 @@ window.addEventListener('DOMContentLoaded', function() {
     border-radius: 12px;
     background-color: #f0f4f8;
     max-width: 600px;
+    width: 90%;
+    box-sizing: border-box;
     text-align: left;
 ">
     <div id="summary_display" style="font-size:20px; margin-bottom: 12px;"></div>
