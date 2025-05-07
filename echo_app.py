@@ -942,18 +942,10 @@ function autoResize(textarea) {{
     textarea.style.height = textarea.scrollHeight + "px";
 }}
 
-window.onload = function() {{
+// Run autoResize as soon as DOM is ready
+document.addEventListener("DOMContentLoaded", function() {{
     var ta = document.getElementById("summaryText");
-    autoResize(ta);
-}};
+    if (ta) autoResize(ta);
+}});
 </script>
-
-<style>
-/* Mobile-specific override: increase textarea height on small screens */
-@media (max-width: 768px) {{
-    #summaryText {{
-        min-height: 225px;
-    }}
-}}
-</style>
 """, height=470)
