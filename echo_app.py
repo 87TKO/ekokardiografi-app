@@ -893,58 +893,67 @@ with tabs[6]:
 
 
     components.html(f"""
-    <div style="margin-top: 10px; display: flex; flex-direction: column; align-items: center;">
-        <div style="width: 60%; min-width: 300px;">
-            <textarea id="summaryText" style="
-                width: 100%;
-                font-size: 16px;
-                font-family: system-ui, sans-serif;
-                padding: 10px;
-                border-radius: 6px;
-                border: 1px solid #ccc;
-                resize: none;
-                overflow: hidden;
-                min-height: 150px;
-                box-shadow: none;
-            " oninput="autoResize(this)">{summary_text}</textarea>
-        </div>
-
-        <button onclick="copyToClipboard()" style="
-            margin-top: 12px;
-            padding: 8px 16px;
-            background-color: #003366;
-            color: yellow;
-            border: 2px solid #ccc;
-            border-radius: 6px;
+<div style="margin-top: 10px; display: flex; flex-direction: column; align-items: center;">
+    <div style="width: 60%; min-width: 300px;">
+        <textarea id="summaryText" style="
+            width: 100%;
             font-size: 16px;
-            font-weight: bold;
-            white-space: nowrap;
-        ">
-            📋 Kopiera
-        </button>
-
-        <p id="copyStatus" style="margin-top: 6px; font-size: 14px; color: green;"></p>
+            font-family: system-ui, sans-serif;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            resize: none;
+            overflow: hidden;
+            min-height: 150px;
+            box-shadow: none;
+        " oninput="autoResize(this)">{summary_text}</textarea>
     </div>
 
-    <script>
-    function copyToClipboard() {{
-        var copyText = document.getElementById("summaryText");
-        copyText.select();
-        copyText.setSelectionRange(0, 99999);
-        document.execCommand("copy");
+    <button onclick="copyToClipboard()" style="
+        margin-top: 12px;
+        padding: 8px 16px;
+        background-color: #003366;
+        color: yellow;
+        border: 2px solid #ccc;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: bold;
+        white-space: nowrap;
+    ">
+        📋 Kopiera
+    </button>
 
-        var status = document.getElementById("copyStatus");
-        status.innerText = "Text kopierad till urklipp!";
+    <p id="copyStatus" style="margin-top: 6px; font-size: 14px; color: green;"></p>
+</div>
+
+<script>
+function copyToClipboard() {{
+    var copyText = document.getElementById("summaryText");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    document.execCommand("copy");
+
+    var status = document.getElementById("copyStatus");
+    status.innerText = "Text kopierad till urklipp!";
+}}
+
+function autoResize(textarea) {{
+    textarea.style.height = "auto";
+    textarea.style.height = textarea.scrollHeight + "px";
+}}
+
+window.onload = function() {{
+    var ta = document.getElementById("summaryText");
+    autoResize(ta);
+}};
+</script>
+
+<style>
+/* Mobile-specific override: increase textarea height on small screens */
+@media (max-width: 768px) {{
+    #summaryText {{
+        min-height: 225px;
     }}
-
-    function autoResize(textarea) {{
-        textarea.style.height = "auto";
-        textarea.style.height = textarea.scrollHeight + "px";
-    }}
-
-    window.onload = function() {{
-        var ta = document.getElementById("summaryText");
-        autoResize(ta);
-    }};
-    </script>
-    """, height=470)
+}}
+</style>
+""", height=470)
