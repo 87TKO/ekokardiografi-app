@@ -926,6 +926,15 @@ with tabs[6]:
     <p id="copyStatus" style="margin-top: 6px; font-size: 14px; color: green;"></p>
 </div>
 
+<style>
+/* 📱 Increase textbox height on mobile */
+@media (max-width: 768px) {{
+    #summaryText {{
+        min-height: 225px !important;
+    }}
+}}
+</style>
+
 <script>
 function copyToClipboard() {{
     var copyText = document.getElementById("summaryText");
@@ -942,10 +951,10 @@ function autoResize(textarea) {{
     textarea.style.height = textarea.scrollHeight + "px";
 }}
 
-// Run autoResize as soon as DOM is ready
 document.addEventListener("DOMContentLoaded", function() {{
     var ta = document.getElementById("summaryText");
     if (ta) autoResize(ta);
 }});
 </script>
 """, height=470)
+
