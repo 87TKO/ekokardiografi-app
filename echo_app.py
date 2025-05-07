@@ -930,7 +930,7 @@ with tabs[6]:
 /* 📱 Increase textbox height on mobile */
 @media (max-width: 768px) {{
     #summaryText {{
-        min-height: 225px !important;
+        min-height: 300px !important;
     }}
 }}
 </style>
