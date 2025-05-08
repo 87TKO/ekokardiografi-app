@@ -542,9 +542,9 @@ with tabs[4]:
     col3, col4 = st.columns(2)
     with col3:
         e_wave = st.number_input("E-våg (m/s)", min_value=0.0, step=0.1, format="%.1f")
-        e_prime_septal = st.number_input("e′ septal (cm/s)", min_value=0, step=1, format="%d")
-    with col4:
         a_wave = st.number_input("A-våg (m/s)", min_value=0.0, step=0.1, format="%.1f")
+    with col4:
+        e_prime_septal = st.number_input("e′ septal (cm/s)", min_value=0, step=1, format="%d")
         e_prime_lateral = st.number_input("e′ lateral (cm/s)", min_value=0, step=1, format="%d")
 
     col5, col6 = st.columns(2)
