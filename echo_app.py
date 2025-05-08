@@ -542,9 +542,9 @@ with tabs[4]:
     col3, col4 = st.columns(2)
     with col3:
         e_wave = st.number_input("E-våg (m/s)", min_value=0.0, step=0.1, format="%.1f")
-        a_wave = st.number_input("A-våg (m/s)", min_value=0.0, step=0.1, format="%.1f")
-    with col4:
         e_prime_septal = st.number_input("e′ septal (cm/s)", min_value=0, step=1, format="%d")
+    with col4:
+        a_wave = st.number_input("A-våg (m/s)", min_value=0.0, step=0.1, format="%.1f")
         e_prime_lateral = st.number_input("e′ lateral (cm/s)", min_value=0, step=1, format="%d")
 
     col5, col6 = st.columns(2)
@@ -733,10 +733,9 @@ with tabs[5]:
         else:
             ti_grade = "Ingen"
 
-# --- 📋 Sammanfattning ---
 with tabs[6]:
     st.markdown("<h2 style='text-align: center;'>Sammanfattning</h2>", unsafe_allow_html=True)
-
+    # Patientinfo
     patient_info = (
         f"\u00c5lder: {age:.0f} \u00e5r, "
         f"Vikt: {weight:.0f} kg, "
@@ -748,95 +747,103 @@ with tabs[6]:
     findings = ""
 
     # Kammarfunktion
-    if lvdd_status == "Normal":
-        findings += "Normalstor v\u00e4nsterkammare i diastole. "
-    else:
-        if "dilaterad" in lvdd_status.lower():
-            findings += f"{lvdd_status.capitalize()} v\u00e4nsterkammare i diastole. "
+    if lvdd > 0:
+        if lvdd_status == "Normal":
+            findings += f"Normalstor vänsterkammare i diastole ({lvdd} mm). "
+        elif "dilaterad" in lvdd_status.lower():
+            findings += f"{lvdd_status.capitalize()} vänsterkammare i diastole ({lvdd} mm). "
         else:
-            findings += f"{lvdd_status.capitalize()} dilaterad v\u00e4nsterkammare i diastole. "
+            findings += f"{lvdd_status.capitalize()} dilaterad vänsterkammare i diastole ({lvdd} mm). "
 
     # Hypertrofi
     def clean_hypertrofi_term(status: str) -> str:
         return status.replace("hypertrofi", "").strip().capitalize()
 
-    if ivsd_status == "Normal" and lvpwd_status == "Normal":
-        findings += f"Ingen hypertrofi (septum {ivsd} mm, bakv\u00e4gg {lvpwd} mm). "
-    else:
-        if ivsd_status != "Normal":
-            cleaned_ivsd = clean_hypertrofi_term(ivsd_status)
-            findings += f"{cleaned_ivsd} hypertrofi i septum ({ivsd} mm). "
-        if lvpwd_status != "Normal":
-            cleaned_lvpwd = clean_hypertrofi_term(lvpwd_status)
-            findings += f"{cleaned_lvpwd} hypertrofi i bakv\u00e4ggen ({lvpwd} mm). "
+    if ivsd > 0 and lvpwd > 0:
+        if ivsd_status == "Normal" and lvpwd_status == "Normal":
+            findings += f"Ingen hypertrofi (septum {ivsd} mm, bakvägg {lvpwd} mm). "
+        else:
+            if ivsd_status != "Normal":
+                findings += f"{clean_hypertrofi_term(ivsd_status)} hypertrofi i septum ({ivsd} mm). "
+            if lvpwd_status != "Normal":
+                findings += f"{clean_hypertrofi_term(lvpwd_status)} hypertrofi i bakväggen ({lvpwd} mm). "
+    elif ivsd > 0 and ivsd_status != "Normal":
+        findings += f"{clean_hypertrofi_term(ivsd_status)} hypertrofi i septum ({ivsd} mm). "
+    elif lvpwd > 0 and lvpwd_status != "Normal":
+        findings += f"{clean_hypertrofi_term(lvpwd_status)} hypertrofi i bakväggen ({lvpwd} mm). "
 
     # Aorta
-    if age > 0 and is_aorta_dilated(aorta, age, sex, bsa):
-        findings += f"Dilaterad aorta ascendens ({aorta} mm). "
-    else:
-        findings += f"Normalvid aorta ascendens ({aorta} mm). "
+    if aorta > 0:
+        if age > 0 and is_aorta_dilated(aorta, age, sex, bsa):
+            findings += f"Dilaterad aorta ascendens ({aorta} mm). "
+        else:
+            findings += f"Normalvid aorta ascendens ({aorta} mm). "
 
-    # V\u00e4nster f\u00f6rmak
-    if lavi <= 34:
-        findings += f"Normalstor v\u00e4nster f\u00f6rmak (LAVI {lavi} ml/m\u00b2). "
-    elif 35 <= lavi <= 41:
-        findings += f"L\u00e4tt \u00f6kad v\u00e4nster f\u00f6rmak storlek (LAVI {lavi} ml/m\u00b2). "
-    elif 42 <= lavi <= 48:
-        findings += f"M\u00e5ttligt \u00f6kad v\u00e4nster f\u00f6rmak storlek (LAVI {lavi} ml/m\u00b2). "
-    else:
-        findings += f"Uttalad \u00f6kad v\u00e4nster f\u00f6rmak storlek (LAVI {lavi} ml/m\u00b2). "
+    # Vänster förmak
+    if lavi > 0:
+        if lavi <= 34:
+            findings += f"Normalstor vänster förmak (LAVI {lavi} ml/m²). "
+        elif 35 <= lavi <= 41:
+            findings += f"Lätt ökad vänster förmak storlek (LAVI {lavi} ml/m²). "
+        elif 42 <= lavi <= 48:
+            findings += f"Måttligt ökad vänster förmak storlek (LAVI {lavi} ml/m²). "
+        else:
+            findings += f"Uttalad ökad vänster förmak storlek (LAVI {lavi} ml/m²). "
 
-    # V\u00e4nsterkammarfunktion
-    if ef > 50:
-        findings += f"Normal systolisk funktion med EF {ef}%. "
-    elif 41 <= ef <= 50:
-        findings += f"L\u00e4tt nedsatt systolisk funktion med EF {ef}%. "
-    elif 30 <= ef <= 40:
-        findings += f"M\u00e5ttligt nedsatt systolisk funktion med EF {ef}%. "
-    else:
-        findings += f"Sv\u00e5r nedsatt systolisk funktion med EF {ef}%. "
+    # Vänsterkammarfunktion
+    if ef > 0:
+        if ef > 50:
+            findings += f"Normal systolisk funktion med EF {ef}%. "
+        elif 41 <= ef <= 50:
+            findings += f"Lätt nedsatt systolisk funktion med EF {ef}%. "
+        elif 30 <= ef <= 40:
+            findings += f"Måttligt nedsatt systolisk funktion med EF {ef}%. "
+        else:
+            findings += f"Svår nedsatt systolisk funktion med EF {ef}%. "
 
-    if gls < 0:
+    if -30.0 < gls < 0.0:
         findings += f"GLS {gls:.1f}%. "
 
+    # Slagvolym och SVI
     if stroke_volume > 0 and bsa > 0:
         if sex == "Man":
             if stroke_volume < 60:
-                findings += f"L\u00e5g slagvolym ({stroke_volume} ml). "
+                findings += f"Låg slagvolym ({stroke_volume} ml). "
             elif stroke_volume > 95:
-                findings += f"H\u00f6g slagvolym ({stroke_volume} ml). "
+                findings += f"Hög slagvolym ({stroke_volume} ml). "
             else:
                 findings += f"Slagvolym inom normalintervall ({stroke_volume} ml). "
-
-            if svi < 34:
-                findings += f"SVI l\u00e5gt ({svi} ml/m\u00b2). "
-            elif svi > 46:
-                findings += f"SVI h\u00f6gt ({svi} ml/m\u00b2). "
-            else:
-                findings += f"SVI inom normalintervall ({svi} ml/m\u00b2). "
-
+            if svi > 0:
+                if svi < 34:
+                    findings += f"SVI lågt ({svi} ml/m²). "
+                elif svi > 46:
+                    findings += f"SVI högt ({svi} ml/m²). "
+                else:
+                    findings += f"SVI inom normalintervall ({svi} ml/m²). "
         elif sex == "Kvinna":
             if stroke_volume < 50:
-                findings += f"L\u00e5g slagvolym ({stroke_volume} ml). "
+                findings += f"Låg slagvolym ({stroke_volume} ml). "
             elif stroke_volume > 75:
-                findings += f"H\u00f6g slagvolym ({stroke_volume} ml). "
+                findings += f"Hög slagvolym ({stroke_volume} ml). "
             else:
                 findings += f"Normala slagvolym ({stroke_volume} ml). "
+            if svi > 0:
+                if svi < 33:
+                    findings += f"SVI lågt ({svi} ml/m²). "
+                elif svi > 45:
+                    findings += f"SVI högt ({svi} ml/m²). "
+                else:
+                    findings += f"SVI inom normalintervall ({svi} ml/m²). "
 
-            if svi < 33:
-                findings += f"SVI l\u00e5gt ({svi} ml/m\u00b2). "
-            elif svi > 45:
-                findings += f"SVI h\u00f6gt ({svi} ml/m\u00b2). "
-            else:
-                findings += f"SVI inom normalintervall ({svi} ml/m\u00b2). "
 
-    # H\u00f6gerkammare
-    if tapse > 16:
-        findings += f"Normal h\u00f6gerkammarfunktion TAPSE {tapse} mm. "
-        if tapse < 17:
-            findings += "Tecken till nedsatt h\u00f6gerkammarfunktion. "
+    # Högerkammare
+    if tapse > 0:
+        if tapse >= 17:
+            findings += f"Normal högerkammarfunktion TAPSE {tapse} mm. "
+        else:
+            findings += f"TAPSE {tapse} mm – tecken till nedsatt högerkammarfunktion. "
 
-    # Diastolisk fyllnadstryck
+    # Diastolisk fyllnad
     if diastolic_function_text:
         findings += diastolic_function_text + " "
 
@@ -876,7 +883,7 @@ with tabs[6]:
     else:
         findings += "Ingen trikuspidalisinsufficiens. "
 
-    # PA-tryck bedömning
+    # PA-tryck
     if tr_gradient_option == "Ej mätbar":
         findings += f"TI-gradient ej mätbar. CVT {cvp} mmHg. "
     elif pa_pressure is not None:
@@ -884,77 +891,74 @@ with tabs[6]:
             findings += f"Förhöjt PA-tryck ({pa_pressure:.0f} mmHg inkl. CVT {cvp} mmHg). "
         else:
             findings += f"Normalt PA-tryck ({pa_pressure:.0f} mmHg inkl. CVT {cvp} mmHg). "
-    else:
-        findings += "Ingen trikuspidalisinsufficiens. "
 
     findings += "Ingen perikardvätska."
 
+    # Final text
     summary_text = f"{patient_info}\n\n{findings}"
 
-
     components.html(f"""
-<div style="margin-top: 10px; display: flex; flex-direction: column; align-items: center;">
-    <div style="width: 60%; min-width: 300px;">
-        <textarea id="summaryText" style="
-            width: 100%;
-            font-size: 16px;
-            font-family: system-ui, sans-serif;
-            padding: 10px;
+    <div style="margin-top: 10px; display: flex; flex-direction: column; align-items: center;">
+        <div style="width: 60%; min-width: 300px;">
+            <textarea id="summaryText" style="
+                width: 100%;
+                font-size: 16px;
+                font-family: system-ui, sans-serif;
+                padding: 10px;
+                border-radius: 6px;
+                border: 1px solid #ccc;
+                resize: none;
+                overflow: hidden;
+                min-height: 150px;
+                box-shadow: none;
+            " oninput="autoResize(this)">{summary_text}</textarea>
+        </div>
+
+        <button onclick="copyToClipboard()" style="
+            margin-top: 12px;
+            padding: 8px 16px;
+            background-color: #003366;
+            color: yellow;
+            border: 2px solid #ccc;
             border-radius: 6px;
-            border: 1px solid #ccc;
-            resize: none;
-            overflow: hidden;
-            min-height: 150px;
-            box-shadow: none;
-        " oninput="autoResize(this)">{summary_text}</textarea>
+            font-size: 16px;
+            font-weight: bold;
+            white-space: nowrap;
+        ">
+            📋 Kopiera
+        </button>
+
+        <p id="copyStatus" style="margin-top: 6px; font-size: 14px; color: green;"></p>
     </div>
 
-    <button onclick="copyToClipboard()" style="
-        margin-top: 12px;
-        padding: 8px 16px;
-        background-color: #003366;
-        color: yellow;
-        border: 2px solid #ccc;
-        border-radius: 6px;
-        font-size: 16px;
-        font-weight: bold;
-        white-space: nowrap;
-    ">
-        📋 Kopiera
-    </button>
-
-    <p id="copyStatus" style="margin-top: 6px; font-size: 14px; color: green;"></p>
-</div>
-
-<style>
-/* 📱 Increase textbox height on mobile */
-@media (max-width: 768px) {{
-    #summaryText {{
-        min-height: 350px !important;
+    <style>
+    /* 📱 Increase textbox height on mobile */
+    @media (max-width: 768px) {{
+        #summaryText {{
+            min-height: 350px !important;
+        }}
     }}
-}}
-</style>
+    </style>
 
-<script>
-function copyToClipboard() {{
-    var copyText = document.getElementById("summaryText");
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    document.execCommand("copy");
+    <script>
+    function copyToClipboard() {{
+        var copyText = document.getElementById("summaryText");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        document.execCommand("copy");
 
-    var status = document.getElementById("copyStatus");
-    status.innerText = "Text kopierad till urklipp!";
-}}
+        var status = document.getElementById("copyStatus");
+        status.innerText = "Text kopierad till urklipp!";
+    }}
 
-function autoResize(textarea) {{
-    textarea.style.height = "auto";
-    textarea.style.height = textarea.scrollHeight + "px";
-}}
+    function autoResize(textarea) {{
+        textarea.style.height = "auto";
+        textarea.style.height = textarea.scrollHeight + "px";
+    }}
 
-document.addEventListener("DOMContentLoaded", function() {{
-    var ta = document.getElementById("summaryText");
-    if (ta) autoResize(ta);
-}});
-</script>
-""", height=800)
-
+    document.addEventListener("DOMContentLoaded", function() {{
+        var ta = document.getElementById("summaryText");
+        if (ta) autoResize(ta);
+    }});
+    </script>
+    """, height=800)
