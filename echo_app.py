@@ -264,28 +264,37 @@ def is_aorta_dilated(aorta, age, sex, bsa):
 # --- 🖼️ Regional Väggfunktion (SVG) ---
 with tabs[3]:
 
-
     if os.path.exists("coronary_segments.svg"):
         with open("coronary_segments.svg", "r", encoding="utf-8") as svg_file:
             svg_raw = svg_file.read()
 
         soup = BeautifulSoup(svg_raw, "html.parser")
 
-        # Inject JavaScript
+        # JavaScript for interactivity
         script = """
 <script>
+const independentSegments = ["Apical_lateral_PLAX", "Apical_inferior_A2C", "Apical_inferior_SAX"];
 let selectedSegments = [];
 
 function updateSegmentListDisplay() {
     const listDiv = document.getElementById("segment_display");
     const segmentStatus = JSON.parse(localStorage.getItem("segmentStatus") || "{}");
-    const uniqueBaseSegments = [...new Set(selectedSegments.map(s => s.replace(/_(A4C|A2C|PLAX|SAX)$/i, "")))];
 
-    listDiv.innerHTML = uniqueBaseSegments.map(base => {
-        const rep = selectedSegments.find(s => s.startsWith(base)) || base;
+    let groupedSegments = {};
+    selectedSegments.forEach(seg => {
+        let base = seg.replace(/_(A4C|A2C|PLAX|SAX)$/i, "");
+        if (independentSegments.includes(seg)) {
+            groupedSegments[seg] = seg;
+        } else {
+            if (!groupedSegments[base]) groupedSegments[base] = seg;
+        }
+    });
+
+    listDiv.innerHTML = Object.entries(groupedSegments).map(([baseOrFull, rep]) => {
+        let label = rep.replace(/_(A4C|A2C|PLAX|SAX)$/i, "").replaceAll("_", " ");
         return `
             <div style='margin-bottom: 10px;'>
-                <label style='font-weight: bold;'>${base.replaceAll("_", " ")}:</label>
+                <label style='font-weight: bold;'>${label}:</label>
                 <select onchange="updateStatus('${rep}', this.value)" style='background-color: #003366; color: white; border-radius: 6px; padding: 4px;'>
                     <option value="">Välj status</option>
                     <option value="Hypokinesi">Hypokinesi</option>
@@ -306,10 +315,10 @@ function updateStatus(segment, status) {
 }
 
 function updateSummaryText() {
-    const lad = ["Apex_A4C", "Apical_septal_A4C", "Apex_A2C", "Apical_inferior_A2C", "Apical_anterior_A2C", "Mid_anterior_A2C", "Basal_anterior_A2C", "Apex_PLAX", "Apical_lateral_PLAX", "Apical_anterior_PLAX", "Mid_anteroseptal_PLAX", "Basal_anteroseptal_PLAX", "Basal_anterior_SAX", "Basal_anteroseptal_SAX", "Mid_anterior_SAX", "Mid_anteroseptal_SAX", "Apical_anterior_SAX", "Apical_septal_SAX"];
+    const lad = ["Apex_A4C", "Apical_septal_A4C", "Apex_A2C", "Apical_anterior_A2C", "Mid_anterior_A2C", "Basal_anterior_A2C", "Apex_PLAX", "Apical_anterior_PLAX", "Mid_anteroseptal_PLAX", "Basal_anteroseptal_PLAX", "Basal_anterior_SAX", "Basal_anteroseptal_SAX", "Mid_anterior_SAX", "Mid_anteroseptal_SAX", "Apical_anterior_SAX", "Apical_septal_SAX"];
     const lad_lcx = ["Apical_lateral_A4C", "Apical_lateral_SAX", "Mid_anterolateral_SAX", "Basal_anterolateral_SAX", "Basal_anterolateral_A4C", "Mid_anterolateral_A4C"];
     const rca = ["Basal_inferoseptal_A4C", "Basal_inferoseptal_SAX", "Basal_inferior_SAX", "Basal_inferior_A2C", "Mid_inferior_A2C", "Mid_inferior_SAX"];
-    const rca_lad = ["Mid_inferoseptal_A4C", "Mid_inferoseptal_SAX", "Apical_inferior_SAX"];
+    const rca_lad = ["Mid_inferoseptal_A4C", "Mid_inferoseptal_SAX"];
     const rca_lcx = ["Mid_inferolateral_PLAX", "Basal_inferolateral_PLAX", "Basal_inferolateral_SAX", "Mid_inferolateral_SAX"];
 
     const segStat = JSON.parse(localStorage.getItem("segmentStatus") || "{}");
@@ -329,18 +338,40 @@ function updateSummaryText() {
 
     let alerts = [];
     const has = (arr) => arr.some(id => selectedSegments.includes(id) && ["Hypokinesi", "Akinesi"].includes(segStat[id]));
+
     if (has(lad)) alerts.push(`<span style='background-color:#f0f4f8;color:purple;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD skada</span>`);
     if (has(lad_lcx)) alerts.push(`<span style='background-color:#f0f4f8;color:orange;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD eller LCx skada</span>`);
     if (has(rca)) alerts.push(`<span style='background-color:#f0f4f8;color:red;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA skada</span>`);
     if (has(rca_lad)) alerts.push(`<span style='background-color:#f0f4f8;color:blue;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA eller LAD skada</span>`);
     if (has(rca_lcx)) alerts.push(`<span style='background-color:#f0f4f8;color:green;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA eller LCx skada</span>`);
 
+    // Independent segment alerts
+    if (segStat["Apical_lateral_PLAX"] && ["Hypokinesi", "Akinesi"].includes(segStat["Apical_lateral_PLAX"])) {
+        alerts.push(`<span style='background-color:#f0f4f8;color:purple;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD skada</span>`);
+    }
+    if (segStat["Apical_inferior_A2C"] && ["Hypokinesi", "Akinesi"].includes(segStat["Apical_inferior_A2C"])) {
+        alerts.push(`<span style='background-color:#f0f4f8;color:purple;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD skada</span>`);
+    }
+    if (segStat["Apical_inferior_SAX"] && ["Hypokinesi", "Akinesi"].includes(segStat["Apical_inferior_SAX"])) {
+        alerts.push(`<span style='background-color:#f0f4f8;color:blue;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA eller LAD skada</span>`);
+    }
+
     document.getElementById("alert_display").innerHTML = alerts.join("<br>");
 }
 
 function toggleSegment(id) {
     const base = id.replace(/_(A4C|A2C|PLAX|SAX)$/i, "");
-    const matches = Array.from(document.querySelectorAll('[id]')).map(el => el.id).filter(s => s.replace(/_(A4C|A2C|PLAX|SAX)$/i, "") === base);
+    const isIndependent = independentSegments.includes(id);
+
+    let matches = [id];
+    if (!isIndependent) {
+        matches = Array.from(document.querySelectorAll('[id]')).map(el => el.id)
+            .filter(s => {
+                const sBase = s.replace(/_(A4C|A2C|PLAX|SAX)$/i, "");
+                return sBase === base && !independentSegments.includes(s);
+            });
+    }
+
     const allSelected = matches.every(s => selectedSegments.includes(s));
     matches.forEach(s => {
         const el = document.getElementById(s);
@@ -353,6 +384,7 @@ function toggleSegment(id) {
             el.style.stroke = "blue"; el.style.strokeWidth = "3";
         }
     });
+
     localStorage.setItem("selectedSegments", JSON.stringify(selectedSegments));
     updateSegmentListDisplay();
 }
@@ -383,22 +415,19 @@ window.onload = () => {
 </script>
 """
 
-           # Update each segment with interactivity
         for tag in soup.find_all(["path", "polygon", "rect", "ellipse"]):
             if tag.has_attr("id"):
                 seg_id = tag["id"]
                 tag["onclick"] = f"toggleSegment('{seg_id}')"
-                tag["id"] = seg_id
 
         modified_svg = str(soup)
-
-        # CSS Styles
+        # CSS styles for SVG and layout
         style_block = """
 <style>
 svg {
     width: 100vw;
     height: auto;
-    max-height: 70vh; /* reduced from 90vh for better space below */
+    max-height: 70vh;
     display: block;
     margin: auto;
 }
@@ -439,7 +468,7 @@ svg {
     color: white;
 }
 
-/* 📱 Responsive layout for small screens */
+/* 📱 Mobile responsiveness */
 @media (max-width: 768px) {
     h2 {
         margin-bottom: 10px !important;
@@ -463,7 +492,7 @@ svg {
 </style>
 """
 
-        # Inject full HTML into Streamlit
+        # Inject into Streamlit
         components.html(
             style_block + script + modified_svg + """
 <script>
@@ -492,10 +521,10 @@ window.addEventListener('DOMContentLoaded', function() {
     </button>
 </div>
 
-<!-- Segment Status Controls -->
+<!-- 📍 Segment Display Area -->
 <div id="segment_display" style="margin-top:20px; font-size:18px;"></div>
 
-<!-- Summary & Alert Display -->
+<!-- 📋 Summary and Alerts Display -->
 <div id="combined_display" style="
     margin: 20px auto 40px auto;
     padding: 12px 20px;
@@ -633,18 +662,17 @@ with tabs[4]:
     if pva_duration > 0 and a_dur > 0 and (pva_duration - a_dur) > 30:
         st.markdown(f"- **PV-a duration längre än A-våg med {pva_duration - a_dur} ms**")
 
-# --- 🩺 Klaffunktion ---
+# --- 🩺 Klafffunktion ---
 with tabs[5]:
+    # --- Initiering av variabler ---
+    aortic_vmax = mean_pg = ava = vena_contracta_ai = pht_ai = calcium_score = 0.0
+    lvot_diameter = lvot_vti = aortic_vti = ava_calc = avai = dvi = 0.0
+    aorta_pathology = []
+    aorta_stenosis_severity = aorta_insuff_severity = None
 
-
-    # --- AORTAKLAFF ---
     st.markdown("### Aortaklaff")
     aorta_morphology = st.selectbox("Aortaklaff morfologi", ["Trikuspid", "Bikuspid"])
     use_manual_aorta = st.radio("Bedömning av aortaklaff", ["Manuell bedömning", "Avancerade parametrar"], horizontal=True)
-
-    aorta_pathology = []
-    aorta_stenosis_severity = None
-    aorta_insuff_severity = None
 
     if use_manual_aorta == "Manuell bedömning":
         aorta_pathology = st.multiselect("Aortaklaff patologi", ["Stenos", "Insufficiens"])
@@ -652,40 +680,129 @@ with tabs[5]:
             aorta_stenosis_severity = st.selectbox("Grad av aortastenos", ["Lindrig", "Måttlig", "Uttalad"])
         if "Insufficiens" in aorta_pathology:
             aorta_insuff_severity = st.selectbox("Grad av aortainsufficiens", ["Lindrig", "Måttlig", "Uttalad"])
-    else:
-        with st.expander("Avancerade parametrar – aortaklaff"):
-            aortic_vmax = st.number_input("Maxhastighet (m/s)", min_value=0.0, step=0.1, format="%.1f")
-            mean_pg = st.number_input("Medelgradient (mmHg)", min_value=0, step=1, format="%d")
-            ava = st.number_input("Aortaklaffarea (cm²)", min_value=0.0, step=0.1, format="%.1f")
-            vena_contracta_ai = st.number_input("Vena Contracta AI (cm)", min_value=0.0, step=0.1, format="%.1f")
-            pht_ai = st.number_input("Pressure Half-Time AI (ms)", min_value=0, step=1, format="%d")
-            diastolic_flow_reversal = st.selectbox("Diastoliskt backflöde i aorta descendens", ["Nej", "Ja"])
 
-        if aortic_vmax > 2.6 or ava < 1.5:
+    else:
+        # --- Avancerade parametrar ---
+        with st.expander("Avancerade parametrar – Aortastenos"):
+            aortic_vmax = st.number_input("Maxhastighet (Vmax, m/s)", min_value=0.0, step=0.1, format="%.1f",
+                                          help="Vmax: Lindrig 2.6–2.9, Måttlig 3.0–3.9, Uttalad ≥4.0 m/s")
+            mean_pg = st.number_input("Medelgradient (mmHg)", min_value=0, step=1, format="%d",
+                                      help="Medelgradient: Lindrig 15–19, Måttlig 20–39, Uttalad ≥40 mmHg")
+            ava = st.number_input("Aortaklaffarea (planimetrisk, cm²)", min_value=0.0, step=0.1, format="%.1f",
+                                  help="AVA: <1.0 uttalad, 1.0–1.5 måttlig stenos")
+            lvot_diameter = st.number_input("LVOT-diameter (cm)", min_value=0.0, step=0.1, format="%.1f")
+            lvot_vti = st.number_input("LVOT VTI (cm)", min_value=0.0, step=0.1, format="%.1f")
+            aortic_vti = st.number_input("Aortaklaff VTI (cm)", min_value=0.0, step=0.1, format="%.1f")
+            calcium_score = st.number_input("Calcium score (Agatston)", min_value=0, step=10)
+
+            if lvot_diameter > 0 and lvot_vti > 0 and aortic_vti > 0:
+                lvot_area = math.pi * (lvot_diameter / 2) ** 2
+                ava_calc = round((lvot_area * lvot_vti) / aortic_vti, 2)
+                dvi = round(lvot_vti / aortic_vti, 2)
+                avai = round(ava_calc / bsa, 2) if bsa > 0 else 0.0
+
+        # --- Tolkning: Aortastenos ---
+        st.markdown("#### 🔍 Tolkning – Aortastenos")
+        if any([aortic_vmax > 2.6, ava < 1.5, ava_calc < 1.5, dvi < 0.5]):
             aorta_pathology.append("Stenos")
-            if aortic_vmax > 4.0 or mean_pg > 40 or ava < 1.0:
+            if any([aortic_vmax >= 4.0, mean_pg >= 40, ava < 1.0, ava_calc < 1.0, dvi < 0.25]):
                 aorta_stenosis_severity = "Uttalad"
-            elif 3.0 <= aortic_vmax <= 4.0 or 20 <= mean_pg <= 40 or 1.0 <= ava < 1.5:
+            elif any([3.0 <= aortic_vmax < 4.0, 20 <= mean_pg < 40, 1.0 <= ava < 1.5, 1.0 <= ava_calc < 1.5]):
                 aorta_stenosis_severity = "Måttlig"
             else:
                 aorta_stenosis_severity = "Lindrig"
 
-        if vena_contracta_ai > 0.3 or pht_ai < 250 or diastolic_flow_reversal == "Ja":
-            aorta_pathology.append("Insufficiens")
-            if vena_contracta_ai >= 0.6 or pht_ai < 200:
-                aorta_insuff_severity = "Uttalad"
-            elif 0.4 <= vena_contracta_ai < 0.6 or 200 <= pht_ai < 250:
-                aorta_insuff_severity = "Måttlig"
+        if aortic_vmax > 0:
+            if aortic_vmax >= 4.0:
+                vmax_grade = "Uttalad aortastenos"
+            elif aortic_vmax >= 3.0:
+                vmax_grade = "Måttlig aortastenos"
+            elif aortic_vmax >= 2.6:
+                vmax_grade = "Lindrig aortastenos"
             else:
-                aorta_insuff_severity = "Lindrig"
+                vmax_grade = ""
+            st.markdown(f"- **Vmax:** {aortic_vmax} m/s {vmax_grade}")
 
-    # --- MITRALISKLAFF ---
+        if mean_pg > 0:
+            if mean_pg >= 40:
+                pg_grade = "Uttalad aortastenos"
+            elif mean_pg >= 20:
+                pg_grade = "Måttlig aortastenos"
+            elif mean_pg >= 15:
+                pg_grade = "Lindrig aortastenos"
+            else:
+                pg_grade = ""
+            st.markdown(f"- **Medelgradient:** {mean_pg} mmHg {pg_grade}")
+
+        if ava > 0:
+            if ava < 1.0:
+                ava_grade = "Uttalad aortastenos"
+            elif ava < 1.5:
+                ava_grade = "Måttlig aortastenos"
+            else:
+                ava_grade = ""
+            st.markdown(f"- **Aortaklaffarea (planimetrisk):** {ava} cm² {ava_grade}")
+
+        if ava_calc > 0:
+            if ava_calc < 1.0:
+                ava_calc_grade = "Uttalad aortastenos"
+            elif ava_calc < 1.5:
+                ava_calc_grade = "Måttlig aortastenos"
+            else:
+                ava_calc_grade = ""
+            st.markdown(f"- **AVA (kontinuitet):** {ava_calc} cm² {ava_calc_grade}")
+
+        if avai > 0:
+            st.markdown(f"- **AVAi:** {avai} cm²/m²")
+
+        if dvi > 0:
+            st.markdown(f"- **DVI:** {dvi}")
+
+        if calcium_score > 0:
+            calcium_grade = "(Uttalad Calciumscore)" if (sex == "Man" and calcium_score >= 2000) or (sex == "Kvinna" and calcium_score >= 1200) else ""
+            st.markdown(f"- **Calciumscore:** {calcium_score} Agatston {calcium_grade}")
+
+        # --- Low-flow, low-gradient and paradoxal ---
+        if svi > 0 and ava_calc < 1.0 and mean_pg < 40:
+            if ef < 50:
+                st.markdown(f"- ⚠️ **Low-flow, low-gradient AS med reducerad EF misstänks** (AVA: {ava_calc} cm², PG: {mean_pg} mmHg, SVI: {svi} ml/m², EF: {ef}%)")
+            elif ef >= 50 and svi < 35:
+                st.markdown(f"- ⚠️ **Paradoxal low-flow, low-gradient AS misstänks** (AVA: {ava_calc} cm², PG: {mean_pg} mmHg, SVI: {svi} ml/m², EF: {ef}%)")
+
+        # --- Avancerade parametrar: Aortainsufficiens ---
+        with st.expander("Avancerade parametrar – Aortainsufficiens"):
+            vena_contracta_ai = st.number_input(
+                "Vena Contracta AI (cm)", min_value=0.0, step=0.1, format="%.1f",
+                help="Lindrig < 0.3, Måttlig 0.4–0.59, Uttalad ≥0.6 cm"
+            )
+            pht_ai = st.number_input(
+                "Pressure Half-Time AI (ms)", min_value=0, step=1, format="%d",
+                help="Uttalad <200 ms, Måttlig 200–249 ms"
+            )
+            diastolic_flow_reversal = st.selectbox(
+                "Diastoliskt backflöde i aorta descendens",
+                ["Nej", "Ja"], help="Backflöde tyder på uttalad AI"
+            )
+
+            if any([vena_contracta_ai > 0.3, pht_ai < 250, diastolic_flow_reversal == "Ja"]):
+                aorta_pathology.append("Insufficiens")
+                if vena_contracta_ai >= 0.6 or pht_ai < 200:
+                    aorta_insuff_severity = "Uttalad"
+                elif 0.4 <= vena_contracta_ai < 0.6 or 200 <= pht_ai < 250:
+                    aorta_insuff_severity = "Måttlig"
+                else:
+                    aorta_insuff_severity = "Lindrig"
+
+
+    # --- 🩺 Klafffunktion – Mitralisklaff ---
+with tabs[5]:
+    mva = vena_contracta_mr = mitral_vti = mitral_pht = 0.0
+    mitral_lvot_vti_ratio = pulm_vein_reversal = ""
+    mitral_pathology = []
+    mitral_stenosis_severity = mitral_insuff_severity = None
+
     st.markdown("### Mitralisklaff")
     use_manual_mitral = st.radio("Bedömning av mitralisklaff", ["Manuell bedömning", "Avancerade parametrar"], horizontal=True)
-
-    mitral_pathology = []
-    mitral_stenosis_severity = None
-    mitral_insuff_severity = None
 
     if use_manual_mitral == "Manuell bedömning":
         mitral_pathology = st.multiselect("Mitralisklaff patologi", ["Stenos", "Insufficiens"])
@@ -693,46 +810,97 @@ with tabs[5]:
             mitral_stenosis_severity = st.selectbox("Grad av mitralisstenos", ["Lindrig", "Måttlig", "Uttalad"])
         if "Insufficiens" in mitral_pathology:
             mitral_insuff_severity = st.selectbox("Grad av mitralisinsufficiens", ["Lindrig", "Måttlig", "Uttalad"])
+
     else:
-        with st.expander("Avancerade parametrar – mitralisklaff"):
-            mva = st.number_input("Mitralisarea (cm²)", min_value=0.0, step=0.1, format="%.1f")
-            vena_contracta_mr = st.number_input("Vena Contracta MR (cm)", min_value=0.0, step=0.1, format="%.1f")
+        with st.expander("Avancerade parametrar – Mitralisstenos"):
+            mva = st.number_input("Mitralisarea (cm²)", min_value=0.0, step=0.1, format="%.1f",
+                                 help="**MVA:** Uttalad < 1.0 cm², Måttlig 1.0–1.5 cm²")
+            mitral_pht = st.number_input("Pressure Half-Time (ms)", min_value=0, step=1, format="%d",
+                                        help="**PHT:** Uttalad > 220 ms")
+            mean_mitral_gradient = st.number_input("Medelgradient (mmHg)", min_value=0, step=1, format="%d",
+                                                help="**Mean Gradient:** Uttalad > 10 mmHg, Måttlig 5–10 mmHg, Lindrig < 5 mmHg")
+            pasp = st.number_input("Pulmonellt artärtryck (PASP, mmHg)", min_value=0, step=1, format="%d",
+                                 help="**PASP:** Uttalad > 50 mmHg, Måttlig 30–50 mmHg, Lindrig < 30 mmHg")
 
-        if mva < 1.5:
-            mitral_pathology.append("Stenos")
-            mitral_stenosis_severity = "Uttalad" if mva < 1.0 else "Måttlig"
+            if mva > 0 and mva < 1.5:
+                mitral_pathology.append("Stenos")
+                mitral_stenosis_severity = "Uttalad" if mva < 1.0 else "Måttlig"
 
-        if vena_contracta_mr > 0.3:
-            mitral_pathology.append("Insufficiens")
-            if vena_contracta_mr >= 0.7:
-                mitral_insuff_severity = "Uttalad"
-            elif 0.4 <= vena_contracta_mr < 0.7:
-                mitral_insuff_severity = "Måttlig"
+        with st.expander("Avancerade parametrar – Mitralisinsufficiens"):
+            vena_contracta_mr = st.number_input("Vena Contracta MR (cm)", min_value=0.0, step=0.1, format="%.1f",
+                                              help="**MR:** Lindrig < 0.3, Måttlig 0.4–0.69, Uttalad ≥ 0.7 cm")
+            mitral_vti = st.number_input("Mitralis VTI (cm)", min_value=0.0, step=0.1, format="%.1f",
+                                        help="Används för flödesanalys.")
+            if mitral_vti > 0 and lvot_vti > 0:
+                mitral_lvot_vti_ratio = round(lvot_vti / mitral_vti, 2)
+            pulm_vein_reversal = st.selectbox("Systolisk reversering i lungvenerna?", ["Nej", "Ja"],
+                                              help="Systolisk reversering tyder på uttalad insufficiens")
+
+            if vena_contracta_mr > 0.3:
+                mitral_pathology.append("Insufficiens")
+                if vena_contracta_mr >= 0.7 or pulm_vein_reversal == "Ja":
+                    mitral_insuff_severity = "Uttalad"
+                elif 0.4 <= vena_contracta_mr < 0.7:
+                    mitral_insuff_severity = "Måttlig"
+                else:
+                    mitral_insuff_severity = "Lindrig"
+
+        st.markdown("#### 🔍 Tolkning – Mitralisstenos")
+        if mva > 0:
+            severity = ""
+            if mva < 1.0:
+                severity = "Uttalad mitralisstenos"
+            elif mva <= 1.5:
+                severity = "Måttlig mitralisstenos"
             else:
-                mitral_insuff_severity = "Lindrig"
+                severity = "Lindrig eller ingen mitralisstenos"
+            st.markdown(f"- **MVA:** {mva} cm² ({severity})")
 
-    # --- TRIKUSPIDALISKLAFF ---
+        if mitral_pht > 0:
+            st.markdown(f"- **PHT:** {mitral_pht} ms")
+
+        if mean_mitral_gradient > 0:
+            if mean_mitral_gradient > 10:
+                st.markdown(f"- **Medelgradient:** {mean_mitral_gradient} mmHg (Uttalad mitralisstenos)")
+            elif mean_mitral_gradient >= 5:
+                st.markdown(f"- **Medelgradient:** {mean_mitral_gradient} mmHg (Måttlig mitralisstenos)")
+            else:
+                st.markdown(f"- **Medelgradient:** {mean_mitral_gradient} mmHg (Lindrig mitralisstenos)")
+
+        if pasp > 0:
+            if pasp > 50:
+                st.markdown(f"- **PASP:** {pasp} mmHg (Uttalad mitralisstenos)")
+            elif pasp >= 30:
+                st.markdown(f"- **PASP:** {pasp} mmHg (Måttlig mitralisstenos)")
+            else:
+                st.markdown(f"- **PASP:** {pasp} mmHg (Lindrig mitralisstenos)")
+
     st.markdown("### Trikuspidalisklaff")
     use_manual_tricuspid = st.radio("Bedömning av trikuspidalisklaff", ["Manuell bedömning", "Avancerade parametrar"], horizontal=True)
-
-    vena_contracta_tr = 0.0
-    ti_grade = "Ingen"
 
     if use_manual_tricuspid == "Manuell bedömning":
         ti_grade = st.selectbox("Grad av trikuspidalinsufficiens (manuell)", ["Ingen", "Lindrig", "Måttlig", "Uttalad"])
     else:
-        with st.expander("Avancerade parametrar – trikuspidalisklaff"):
-            vena_contracta_tr = st.number_input("Vena Contracta TR (cm)", min_value=0.0, step=0.1, format="%.1f")
+        with st.expander("Avancerade parametrar – Trikuspidalisklaff"):
+            vena_contracta_tr = st.number_input(
+                "Vena Contracta TR (cm)",
+                min_value=0.0, step=0.1, format="%.1f",
+                help="**VC TR:** Uttalad ≥ 0.7 cm, Måttlig 0.4–0.69 cm, Lindrig 0.1–0.39 cm, Ingen < 0.1 cm"
+            )
 
-        if vena_contracta_tr >= 0.7:
-            ti_grade = "Uttalad"
-        elif 0.4 <= vena_contracta_tr < 0.7:
-            ti_grade = "Måttlig"
-        elif 0.1 <= vena_contracta_tr < 0.4:
-            ti_grade = "Lindrig"
-        else:
-            ti_grade = "Ingen"
+            if vena_contracta_tr >= 0.7:
+                ti_grade = "Uttalad"
+            elif 0.4 <= vena_contracta_tr < 0.7:
+                ti_grade = "Måttlig"
+            elif 0.1 <= vena_contracta_tr < 0.4:
+                ti_grade = "Lindrig"
+            else:
+                ti_grade = "Ingen"
 
+        st.markdown("#### 🔍 Tolkning – Trikuspidalisinsufficiens")
+        if vena_contracta_tr > 0:
+            st.markdown(f"- **Vena Contracta TR:** {vena_contracta_tr} cm")
+        st.markdown(f"- **Bedömd grad:** {ti_grade}")                
 with tabs[6]:
     st.markdown("<h2 style='text-align: center;'>Sammanfattning</h2>", unsafe_allow_html=True)
     # Patientinfo
@@ -867,6 +1035,15 @@ with tabs[6]:
                 findings += ". "
         elif aorta_insuff_severity:
             findings += f"{aorta_insuff_severity.lower()} aortainsufficiens. "
+    # Kompletterande aortastenos-parametrar
+    if use_manual_aorta == "Avancerade parametrar":
+        if ava_calc > 0:
+            findings += f"Beräknad AVA enligt kontinuitetsekvationen {ava_calc} cm². "
+        if avai > 0:
+            findings += f"Indexerad AVA (AVAi) {avai} cm²/m². "
+        if dvi > 0:
+            findings += f"Dimensionless Index (DVI) {dvi}. "
+        
 
     # Mitralisklaff
     if not mitral_pathology:
