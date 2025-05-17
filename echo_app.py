@@ -81,7 +81,7 @@ with tabs[0]:
              "Pacemakerrytm", "AV-block II", "AV-block III"]
         )
     with col6:
-        ekg_freq_input = st.text_input("EKG-frekvens (bpm)", value="")
+        ekg_freq_input = st.text_input("EKG-frekvens (spm)", value="")
         ekg_freq = int(ekg_freq_input) if ekg_freq_input.isdigit() else 0
 
 # --- 🕝 Dimensioner ---
@@ -97,14 +97,16 @@ with tabs[1]:
         lvpwd_input = st.text_input("LVPWd (mm)", value="")
         lvpwd = int(lvpwd_input) if lvpwd_input.isdigit() else 0
 
-    col4, col5 = st.columns(2)
+    col4, col5, col6 = st.columns(3)
     with col4:
         aorta_input = st.text_input("Aorta ascendens (mm)", value="")
         aorta = int(aorta_input) if aorta_input.isdigit() else 0
     with col5:
         lavi_input = st.text_input("LAVI (ml/m²)", value="")
         lavi = int(lavi_input) if lavi_input.isdigit() else 0
-
+    with col6:    
+        ravi_input = st.text_input("RAVI (ml/m²)", value="")
+        ravi = int(ravi_input) if ravi_input.isdigit() else 0
     # --- Equalis-baserad bedömning ---
     lvdd_status = "Normal"
     ivsd_status = "Normal"
@@ -159,15 +161,35 @@ with tabs[1]:
             lvpwd_status = "Lindrig hypertrofi"
 
     # --- LAVI-tolkning ---
-    if lavi <= 34:
+    if lavi <= 37:
         lavi_status = "Normal"
-    elif 35 <= lavi <= 41:
+    elif 38 <= lavi <= 41:
         lavi_status = "Lätt ökad"
     elif 42 <= lavi <= 48:
         lavi_status = "Måttligt ökad"
     else:
         lavi_status = "Uttalad ökad"
 
+    if sex == "Man":
+        if ravi <= 36:
+            ravi_status = "Normal"
+        elif 37 <= ravi <= 42:
+            ravi_status = "Lätt ökad"
+        elif 43 <= ravi <= 48:
+            ravi_status = "Måttligt ökad"
+        else:
+            ravi_status = "Uttalad ökad"
+    elif sex == "Kvinna":
+        if ravi <= 31:
+            ravi_status = "Normal"
+        elif 32 <= ravi <= 37:
+            ravi_status = "Lätt ökad"
+        elif 38 <= ravi <= 42:
+            ravi_status = "Måttligt ökad"
+        else:
+            ravi_status = "Uttalad ökad"
+    else:
+        ravi_status = "Ej angivet"
     # --- Tolkning ---
     st.markdown("---")
     st.markdown("### Tolkning:")
@@ -175,6 +197,7 @@ with tabs[1]:
     st.markdown(f"- **IVSd-status:** {ivsd_status}")
     st.markdown(f"- **LVPWd-status:** {lvpwd_status}")
     st.markdown(f"- **LAVI-status:** {lavi_status} ({lavi} ml/m²)")
+    st.markdown(f"- **RAVI-status:** {ravi_status} ({ravi} ml/m²)")
 # --- 💓 Systolisk Funktion ---
 with tabs[2]:
     col1, col2 = st.columns(2)
@@ -337,23 +360,27 @@ function updateSummaryText() {
     document.getElementById("summary_display").innerHTML = summary || "";
 
     let alerts = [];
+    const addAlert = (text) => {
+        if (!alerts.includes(text)) alerts.push(text);
+    };
+
     const has = (arr) => arr.some(id => selectedSegments.includes(id) && ["Hypokinesi", "Akinesi"].includes(segStat[id]));
 
-    if (has(lad)) alerts.push(`<span style='background-color:#f0f4f8;color:purple;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD skada</span>`);
-    if (has(lad_lcx)) alerts.push(`<span style='background-color:#f0f4f8;color:orange;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD eller LCx skada</span>`);
-    if (has(rca)) alerts.push(`<span style='background-color:#f0f4f8;color:red;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA skada</span>`);
-    if (has(rca_lad)) alerts.push(`<span style='background-color:#f0f4f8;color:blue;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA eller LAD skada</span>`);
-    if (has(rca_lcx)) alerts.push(`<span style='background-color:#f0f4f8;color:green;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA eller LCx skada</span>`);
+    if (has(lad)) addAlert(`<span style='background-color:#f0f4f8;color:purple;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD skada</span>`);
+    if (has(lad_lcx)) addAlert(`<span style='background-color:#f0f4f8;color:orange;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD elle LCx skada</span>`);
+    if (has(rca)) addAlert(`<span style='background-color:#f0f4f8;color:red;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA skada</span>`);
+    if (has(rca_lad)) addAlert(`<span style='background-color:#f0f4f8;color:blue;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA eller LAD skada</span>`);
+    if (has(rca_lcx)) addAlert(`<span style='background-color:#f0f4f8;color:green;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA eller LCx skada</span>`);
 
-    // Independent segment alerts
+    // Independent segments
     if (segStat["Apical_lateral_PLAX"] && ["Hypokinesi", "Akinesi"].includes(segStat["Apical_lateral_PLAX"])) {
-        alerts.push(`<span style='background-color:#f0f4f8;color:purple;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD skada</span>`);
+        addAlert(`<span style='background-color:#f0f4f8;color:purple;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD skada</span>`);
     }
     if (segStat["Apical_inferior_A2C"] && ["Hypokinesi", "Akinesi"].includes(segStat["Apical_inferior_A2C"])) {
-        alerts.push(`<span style='background-color:#f0f4f8;color:purple;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt LAD skada</span>`);
+        addAlert(`<span style='background-color:#f0f4f8;color:red;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA skada</span>`);
     }
     if (segStat["Apical_inferior_SAX"] && ["Hypokinesi", "Akinesi"].includes(segStat["Apical_inferior_SAX"])) {
-        alerts.push(`<span style='background-color:#f0f4f8;color:blue;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA eller LAD skada</span>`);
+        addAlert(`<span style='background-color:#f0f4f8;color:blue;padding:3px 6px;font-weight:bold;font-size:18px;'>Misstänkt RCA eller LAD skada</span>`);
     }
 
     document.getElementById("alert_display").innerHTML = alerts.join("<br>");
@@ -497,7 +524,7 @@ svg {
             style_block + script + modified_svg + """
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    const height = window.innerWidth <= 768 ? 1000 : 1900;
+    const height = window.innerWidth <= 768 ? 1400 : 5000;
     const streamlitIframe = window.frameElement;
     if (streamlitIframe) {
         streamlitIframe.style.height = height + 'px';
@@ -531,7 +558,7 @@ window.addEventListener('DOMContentLoaded', function() {
     border: 2px solid #003366;
     border-radius: 12px;
     background-color: #f0f4f8;
-    max-width: 600px;
+    max-width: 900px;
     width: 90%;
     box-sizing: border-box;
     text-align: left;
@@ -539,10 +566,11 @@ window.addEventListener('DOMContentLoaded', function() {
     <div id="summary_display" style="font-size:20px; margin-bottom: 12px;"></div>
     <div id="alert_display" style="font-size:18px;"></div>
 </div>
+
 """,
-            height=0,
-            scrolling=False
-        )
+    height=0,
+    scrolling=False
+)
 
 # --- 💓 Diastolisk Funktion (bedömning av fyllnadstryck) ---
 with tabs[4]:
@@ -990,6 +1018,26 @@ with tabs[6]:
             findings += f"Måttligt ökad vänster förmak storlek (LAVI {lavi} ml/m²). "
         else:
             findings += f"Uttalad ökad vänster förmak storlek (LAVI {lavi} ml/m²). "
+
+    if ravi > 0:
+        if sex == "Man":
+            if ravi <= 36:
+                findings += f"Normalstor höger förmak (RAVI {ravi} ml/m²). "
+            elif 37 <= ravi <= 42:
+                findings += f"Lätt ökad höger förmak storlek (RAVI {ravi} ml/m²). "
+            elif 43 <= ravi <= 48:
+                findings += f"Måttligt ökad höger förmak storlek (RAVI {ravi} ml/m²). "
+            else:
+                findings += f"Uttalat ökad höger förmak storlek (RAVI {ravi} ml/m²). "
+        else:
+            if ravi <= 31:
+                findings += f"Normalstor höger förmak (RAVI {ravi} ml/m²). "
+            elif 32 <= ravi <= 37:
+                findings += f"Lätt ökad höger förmak storlek (RAVI {ravi} ml/m²). "
+            elif 38 <= ravi <= 42:
+                findings += f"Måttligt ökad höger förmak storlek (RAVI {ravi} ml/m²). "
+            else:
+                findings += f"Uttalat ökad höger förmak storlek (RAVI {ravi} ml/m²). "        
 
     # --- Vänsterkammarfunktion ---
     if ef > 0:
