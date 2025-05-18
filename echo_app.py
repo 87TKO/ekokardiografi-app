@@ -734,6 +734,17 @@ with tabs[5]:
                 aorta_insuff_severity = st.selectbox("Grad av aortainsufficiens", ["Lindrig", "Måttlig", "Uttalad"], key="aorta_insuff")
         else:
             with st.expander("Avancerade parametrar – Aortastenos"):
+                st.markdown("""
+                #### Hjälptext 
+                - **Vmax (m/s): ≥ 4.0** = uttalad stenos; **3.0–3.9** = måttlig; **2.6–2.9** = lindrig.
+                - **Medelgradient (mmHg):** **≥ 40** = uttalad stenos, **20–39** = måttlig.
+                - **AVA (cm²):** **< 1.0** = uttalad, **1.0–1.5** = måttlig; **> 1.5** = lindrig
+                - **AVA indexerad (AVAi, cm²/m²):** **< 0.6** = uttalad stenos, **0.6-0.85** = måttlig
+                - **DVI (dimensionless index):** **< 0.25** = uttalad stenos, **0.25–0.5** = måttlig, 
+                - **Calciumscore (Agatston):** **≥ 2000 hos män** och **≥ 1200 hos kvinnor** talar för uttalad stenos. Används vid **LFLG AS**
+                - Tolkning bör göras i relation till **stroke volume index (SVI)** och **EF**, särskilt vid lågflödesbilder.
+                """)
+
                 aortic_vmax = float(st.text_input("Maxhastighet (Vmax, m/s)", value="", key="aortic_vmax") or 0)
                 mean_pg = int(st.text_input("Medelgradient (mmHg)", value="", key="mean_pg") or 0)
                 ava = float(st.text_input("Aortaklaffarea (planimetrisk, cm²)", value="", key="ava_plan") or 0)
