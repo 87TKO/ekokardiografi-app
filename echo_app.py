@@ -608,18 +608,18 @@ with tabs[4]:
         except ValueError:
             e_wave = 0.0
 
-        e_prime_septal_input = st.text_input("e′ septal (cm/s)", value="")
-        try:
-            e_prime_septal = float(e_prime_septal_input) if e_prime_septal_input else 0.0
-        except ValueError:
-            e_prime_septal = 0.0
-
-    with col4:
         a_wave_input = st.text_input("A-våg (m/s)", value="")
         try:
             a_wave = float(a_wave_input) if a_wave_input else 0.0
         except ValueError:
             a_wave = 0.0
+
+    with col4:
+        e_prime_septal_input = st.text_input("e′ septal (cm/s)", value="")
+        try:
+            e_prime_septal = float(e_prime_septal_input) if e_prime_septal_input else 0.0
+        except ValueError:
+            e_prime_septal = 0.0
 
         e_prime_lateral_input = st.text_input("e′ lateral (cm/s)", value="")
         try:
