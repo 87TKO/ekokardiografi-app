@@ -88,11 +88,11 @@ with tabs[0]:
 with tabs[1]:
     col1, col2, col3 = st.columns(3)
     with col1:
-        lvdd_input = st.text_input("LVIDd (mm)", value="")
-        lvdd = int(lvdd_input) if lvdd_input.isdigit() else 0
-    with col2:
         ivsd_input = st.text_input("IVSd (mm)", value="")
         ivsd = int(ivsd_input) if ivsd_input.isdigit() else 0
+    with col2:
+        lvdd_input = st.text_input("LVIDd (mm)", value="")
+        lvdd = int(lvdd_input) if lvdd_input.isdigit() else 0
     with col3:
         lvpwd_input = st.text_input("LVPWd (mm)", value="")
         lvpwd = int(lvpwd_input) if lvpwd_input.isdigit() else 0
