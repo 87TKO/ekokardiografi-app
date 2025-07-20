@@ -592,7 +592,10 @@ with tabs[4]:
 
     if tr_gradient_option == "Ange värde":
         tr_gradient_input = st.text_input("TI-gradient (mmHg)", value="", key="tr_value_dia")
-        tr_gradient = int(tr_gradient_input) if tr_gradient_input.isdigit() else 0
+        try:
+            tr_gradient = float(tr_gradient_input)
+        except ValueError:
+            tr_gradient = 0.0
         pa_pressure = round(tr_gradient + cvp, 1)
     else:
         pa_pressure = None
@@ -606,7 +609,11 @@ with tabs[4]:
             e_wave = 0.0
 
         e_prime_septal_input = st.text_input("e′ septal (cm/s)", value="")
-        e_prime_septal = int(e_prime_septal_input) if e_prime_septal_input.isdigit() else 0
+        try:
+            e_prime_septal = float(e_prime_septal_input) if e_prime_septal_input else 0.0
+        except ValueError:
+            e_prime_septal = 0.0
+
     with col4:
         a_wave_input = st.text_input("A-våg (m/s)", value="")
         try:
@@ -615,17 +622,26 @@ with tabs[4]:
             a_wave = 0.0
 
         e_prime_lateral_input = st.text_input("e′ lateral (cm/s)", value="")
-        e_prime_lateral = int(e_prime_lateral_input) if e_prime_lateral_input.isdigit() else 0
+        try:
+            e_prime_lateral = float(e_prime_lateral_input) if e_prime_lateral_input else 0.0
+        except ValueError:
+            e_prime_lateral = 0.0
 
     col5, col6 = st.columns(2)
     with col5:
         pv_flow = st.selectbox("Pulmonell venflöde (S/D)", ["Ej angivet", "S > D", "S < D"])
     with col6:
         pva_duration_input = st.text_input("PV-a duration (ms)", value="")
-        pva_duration = int(pva_duration_input) if pva_duration_input.isdigit() else 0
+        try:
+            pva_duration = int(pva_duration_input)
+        except ValueError:
+            pva_duration = 0
 
     a_dur_input = st.text_input("A-vågs duration (ms)", value="")
-    a_dur = int(a_dur_input) if a_dur_input.isdigit() else 0
+    try:
+        a_dur = int(a_dur_input)
+    except ValueError:
+        a_dur = 0
 
     # --- Beräkningar ---
     e_a_ratio = round(e_wave / a_wave, 1) if a_wave > 0 else 0
@@ -638,7 +654,7 @@ with tabs[4]:
     elif e_prime_lateral > 0:
         e_prime_avg = e_prime_lateral
     else:
-        e_prime_avg = 0
+        e_prime_avg = 0.0
 
     e_e_prime = round(e_wave_cm_s / e_prime_avg, 1) if e_prime_avg > 0 else 0
 
@@ -704,6 +720,7 @@ with tabs[4]:
         st.markdown("- **Pulmonell venflöde: S < D hos patient >50 år**")
     if pva_duration > 0 and a_dur > 0 and (pva_duration - a_dur) > 30:
         st.markdown(f"- **PV-a duration längre än A-våg med {pva_duration - a_dur} ms**")
+
 # --- 🩺 Klafffunktion ---
 with tabs[5]:
     col1, col2, col3 = st.columns(3)
